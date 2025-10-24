@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.proyecto.integrador.ModuloUbicacionFXController"
+      spacing="8" alignment="CENTER">
+    <padding>
+        <Insets top="10" right="10" bottom="10" left="10"/>
+    </padding>
+
+    <Label text="Módulo Ubicación" style="-fx-font-size:14;" />
+    <Button text="Listar Ubicaciones" onAction="#onListar" />
+    <TextArea fx:id="txtListado" prefRowCount="10" prefColumnCount="60" wrapText="true"/>
+
+    <Label text="Crear Ubicación (ID, Nombre, PuntoCardinal, Tipo, Comuna, Zona, Nivel)" />
+    <GridPane hgap="6" vgap="6">
+        <TextField fx:id="tfId" promptText="ID" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <TextField fx:id="tfNombre" promptText="Nombre" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+        <TextField fx:id="tfPunto" promptText="Punto" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+        <TextField fx:id="tfTipo" promptText="Tipo" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+        <TextField fx:id="tfComuna" promptText="Comuna" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <TextField fx:id="tfZona" promptText="Zona" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+        <TextField fx:id="tfNivel" promptText="Nivel" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+    </GridPane>
+    <HBox spacing="8">
+        <Button text="Crear" onAction="#onCrear"/>
+        <Button text="Regresar" onAction="#onBack"/>
+    </HBox>
+</VBox>

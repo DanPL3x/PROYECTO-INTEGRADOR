@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.proyecto.integrador.LoginFXController"
+      spacing="10" alignment="CENTER">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Login - Admin" style="-fx-font-size:16;" />
+    <GridPane hgap="8" vgap="8">
+        <Label text="Usuario:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+        <TextField fx:id="txtUsuario" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+        <Label text="Contraseña:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+        <PasswordField fx:id="txtPassword" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+    </GridPane>
+
+    <HBox spacing="10">
+        <Button text="Ingresar" onAction="#onLogin"/>
+        <Button text="Regresar" onAction="#onBack"/>
+    </HBox>
+</VBox>
