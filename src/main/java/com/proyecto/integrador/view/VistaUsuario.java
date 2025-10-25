@@ -2,8 +2,6 @@ package com.proyecto.integrador.view;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.ResultSet;
-
 import javax.swing.*;
 
 public class VistaUsuario extends JFrame {
@@ -15,6 +13,10 @@ public class VistaUsuario extends JFrame {
     JLabel etiqueta1;
     JTextArea chat;
     JButton consultaLugares, ConsultaLugarDenuncia, ConsultaDelitoComun, ConsultaDenunciaReciente, Regresar;
+    JButton btnZonas, btnTipos, btnPuntosCardinales;
+    private JTextArea txtResultado;
+    private JButton btnRegresar;
+    private JPanel panelBotones;
 
     public VistaUsuario() {
 
@@ -61,10 +63,16 @@ public class VistaUsuario extends JFrame {
         ConsultaDelitoComun.setFont(BtFont);
         ConsultaDenunciaReciente = new JButton("Denuncia más reciente realizada");
         ConsultaDenunciaReciente.setFont(BtFont);
+        btnZonas = new JButton("Consultar Zonas");
+        btnTipos = new JButton("Consultar Tipos");
+        btnPuntosCardinales = new JButton("Consultar Puntos Cardinales");
         panel2.add(consultaLugares);
         panel2.add(ConsultaLugarDenuncia);
         panel2.add(ConsultaDelitoComun);
         panel2.add(ConsultaDenunciaReciente);
+        panel2.add(btnZonas);
+        panel2.add(btnTipos);
+        panel2.add(btnPuntosCardinales);
 
         add(panel2, BorderLayout.CENTER);
     }
@@ -106,7 +114,39 @@ public class VistaUsuario extends JFrame {
         ConsultaDenunciaReciente.setActionCommand("DenunciaReciente");
     }
 
+    public void ListenerConsultaZonas(ActionListener listener) {
+        btnZonas.setActionCommand("Zonas");
+        btnZonas.addActionListener(listener);
+    }
+
+    public void ListenerConsultaTipos(ActionListener listener) {
+        btnTipos.setActionCommand("Tipos");
+        btnTipos.addActionListener(listener);
+    }
+
+    public void ListenerConsultaPuntosCardinales(ActionListener listener) {
+        btnPuntosCardinales.setActionCommand("PuntosCardinales");
+        btnPuntosCardinales.addActionListener(listener);
+    }
+
     public void setChat(String parTexto){
         chat.setText(parTexto);
+    }
+
+    // Métodos para agregar listeners
+    public void setResultado(String texto) {
+        txtResultado.setText(texto);
+    }
+
+    public void addTablaListener(String tabla, ActionListener listener) {
+        for (Component c : panelBotones.getComponents()) {
+            if (c instanceof JButton && ((JButton)c).getActionCommand().equals(tabla)) {
+                ((JButton)c).addActionListener(listener);
+            }
+        }
+    }
+
+    public void addRegresarListener(ActionListener listener) {
+        btnRegresar.addActionListener(listener);
     }
 }

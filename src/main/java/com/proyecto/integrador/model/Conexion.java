@@ -143,6 +143,61 @@ public class Conexion {
         return connection;
     }
 
+    // Nuevo método público para probar la conexión (devuelve true si se conecta correctamente)
+    public static boolean testConnection() {
+        try {
+            Connection c = getConnectionStatic();
+            if (c == null) {
+                System.out.println("Resultado: conexión es null. Revisa config.properties y credenciales.");
+                return false;
+            }
+            if (c.isClosed()) {
+                System.out.println("Resultado: la conexión está cerrada.");
+                return false;
+            }
+            System.out.println("Resultado: Conexión establecida correctamente.");
+            // Mostrar URL y usuario (sin contraseña) para diagnóstico
+            try {
+                String url = firstNonNull(
+                        System.getProperty("db.url"),
+                        System.getProperty("URL"),
+                        System.getProperty("url")
+                );
+                String user = firstNonNull(
+                        System.getProperty("db.user"),
+                        System.getProperty("USERNAME"),
+                        System.getProperty("username")
+                );
+                if (url != null) System.out.println("URL utilizada: " + normalizeJdbcUrl(url));
+                if (user != null) System.out.println("Usuario: " + user);
+            } catch (Exception ex) {
+                // no bloquear la prueba por problemas de diagnóstico
+            }
+            return true;
+        } catch (SQLException e) {
+            System.out.println("SQLException durante testConnection: " + e.getMessage());
+            return false;
+        } catch (Exception e) {
+            System.out.println("Error inesperado durante testConnection: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Main para ejecutar la prueba desde la línea de comandos:
+    public static void main(String[] args) {
+        System.out.println("Iniciando prueba de conexión a la BD...");
+        boolean ok = testConnection();
+        if (!ok) {
+            System.out.println("La prueba falló. Verifica las siguientes cosas:");
+            System.out.println(" - Archivo config.properties (URL/USERNAME/PASSWORD) en el working dir o src/main/resources");
+            System.out.println(" - Que el servidor MySQL esté en ejecución y accesible");
+            System.out.println(" - Que el usuario y contraseña sean correctos y tengan permisos");
+            System.out.println("Ejecuta el programa con: java -cp <classpath> com.proyecto.integrador.model.Conexion");
+        } else {
+            System.out.println("Prueba completada con éxito.");
+        }
+    }
+
     // Añade parámetros necesarios a la URL JDBC si no están presentes
     private static String normalizeJdbcUrl(String url) {
         if (url == null) return null;

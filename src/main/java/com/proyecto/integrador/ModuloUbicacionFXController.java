@@ -25,11 +25,13 @@ public class ModuloUbicacionFXController {
 	private Conexion conexionBD = new Conexion();
 	private Connection conexion = conexionBD.getConnection();
 	private Ubicacion ubicacion = new Ubicacion(conexion);
+    private String CrearNombreUbi;
+    private String CrearPuntoCardUbi;
 
-	@FXML
+    @FXML
 	private void onListar(ActionEvent ev) {
 		try {
-			txtListado.setText(ubicacion.informarUbicacionAdmin());
+			txtListado.setText(ubicacion.informarUbicacion());
 		} catch (Exception ex) {
 			showError(ex.getMessage());
 		}
@@ -50,7 +52,7 @@ public class ModuloUbicacionFXController {
 				showError("Debe ingresar los campos obligatorios");
 				return;
 			}
-			ubicacion.CrearUbicacion(Integer.parseInt(id), nombre, punto, tipo, Integer.parseInt(comuna), Integer.parseInt(zona), Integer.parseInt(nivel));
+			ubicacion.CrearUbicacion(Integer.parseInt(id), CrearNombreUbi, CrearPuntoCardUbi, nombre, Integer.parseInt(comuna), Integer.parseInt(zona), Integer.parseInt(nivel));
 			Alert a = new Alert(Alert.AlertType.INFORMATION, "Registro creado con éxito");
 			a.showAndWait();
 			onListar(ev);

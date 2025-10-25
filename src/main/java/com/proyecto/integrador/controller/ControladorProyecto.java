@@ -56,6 +56,9 @@ public class ControladorProyecto {
     LugarDenuncia lugarD = new LugarDenuncia(conexion);
     DelitoDenuncia delitoDenuncia = new DelitoDenuncia(conexion);
     Denuncia denuncia = new Denuncia(conexion);
+    // Añadir nuevos modelos
+    Zona zona = new Zona(conexion);
+    Tipo tipo = new Tipo(conexion);
 
     // Y ahora llamás al método
 
@@ -83,6 +86,9 @@ public class ControladorProyecto {
                     vistaUser.ListenerDenunciaReciente(new Listener());
                     vistaUser.ListenerLugarDenuncia(new Listener());
                     vistaUser.ListenerRegresar(new Listener());
+                    vistaUser.ListenerConsultaZonas(new Listener());
+                    vistaUser.ListenerConsultaTipos(new Listener());
+                    vistaUser.ListenerConsultaPuntosCardinales(new Listener());
                     vistaUser.setVisible(true);
                     vista.dispose();
                 }
@@ -130,6 +136,18 @@ public class ControladorProyecto {
                         texto = denuncia.informarDenunciaReciente();
                         vistaUser.setChat(texto);
                         break;
+                    case "Zonas":
+                        texto = zona.informarZonas();
+                        vistaUser.setChat(texto);
+                        break;
+                    case "Tipos":
+                        texto = tipo.informarTipos();
+                        vistaUser.setChat(texto);
+                        break;
+                    case "PuntosCardinales":
+                        texto = ubicacion.informarUbicacion();
+                        vistaUser.setChat(texto);
+                        break;
                     case "Regresar":
                         vistaUser.dispose();
                         vista.setVisible(true);
@@ -174,8 +192,6 @@ public class ControladorProyecto {
                                     JOptionPane.ERROR_MESSAGE);
                         } else {
                             ubicacion.EditarUbicacion(Integer.parseInt(EditIdUbi), EditNombreUbi,
-                                    EditPuntoCardUbi,
-                                    EditTipoUbi,
                                     Integer.parseInt(EditComuna), Integer.parseInt(EditIdZonaUbi),
                                     Integer.parseInt(EditIdNivelUbi));
 
