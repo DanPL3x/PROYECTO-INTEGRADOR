@@ -39,7 +39,7 @@ public class FXLauncher extends Application {
     @Override
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
-        primaryStage.setTitle("Portal Seguridad Cali");
+        primaryStage.setTitle("Portal Chat Seguridad Cali");
 
         // Inicializar conexión
         conexionBD = new Conexion();
@@ -61,24 +61,69 @@ public class FXLauncher extends Application {
 
     // Menú principal
     private Parent createMainMenu() {
-        VBox mainRoot = new VBox(20);
-        mainRoot.setPadding(new Insets(20));
+        VBox mainRoot = new VBox(30);
+        mainRoot.setPadding(new Insets(40));
         mainRoot.setAlignment(Pos.CENTER);
+        mainRoot.setStyle("-fx-background-color: linear-gradient(to bottom right, #1a237e, #0d47a1);");
 
-        Label title = new Label("Seleccione su Rol");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        // Logo/Título
+        VBox headerBox = new VBox(15);
+        headerBox.setAlignment(Pos.CENTER);
 
-        Button btnUsuario = new Button("Consultas Usuario");
-        btnUsuario.setStyle("-fx-font-size: 16px; -fx-min-width: 200px;");
+        Label title = new Label("CHAT SEGURIDAD CALI ");
+        title.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;");
 
-        Button btnAdmin = new Button("Acceso Administrador");
-        btnAdmin.setStyle("-fx-font-size: 16px; -fx-min-width: 200px;");
+        Label subtitle = new Label("Ciudad de Cali");
+        subtitle.setStyle("-fx-font-size: 20px; -fx-font-weight: normal; -fx-text-fill: #e0e0e0;");
+
+        headerBox.getChildren().addAll(title, subtitle);
+
+        // Contenedor de botones con estilo
+        VBox buttonBox = new VBox(15);
+        buttonBox.setAlignment(Pos.CENTER);
+        buttonBox.setPadding(new Insets(30, 0, 0, 0));
+
+        Button btnUsuario = new Button("Portal Ciudadano");
+        Button btnAdmin = new Button("Acceso Administrativo");
+
+        // Estilos modernos para botones
+        String buttonStyle =
+                "-fx-background-color: white;" +
+                        "-fx-text-fill: #1a237e;" +
+                        "-fx-font-size: 16px;" +
+                        "-fx-min-width: 250px;" +
+                        "-fx-min-height: 45px;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-background-radius: 22.5;" + // Bordes redondeados
+                        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);";
+
+        String buttonHoverStyle =
+                "-fx-background-color: #e0e0e0;" +
+                        "-fx-text-fill: #1a237e;";
+        btnUsuario.setStyle(buttonStyle);
+        btnAdmin.setStyle(buttonStyle);
+
+        // Efectos hover
+        btnUsuario.setOnMouseEntered(e -> btnUsuario.setStyle(buttonStyle + buttonHoverStyle));
+        btnUsuario.setOnMouseExited(e -> btnUsuario.setStyle(buttonStyle));
+        btnAdmin.setOnMouseEntered(e -> btnAdmin.setStyle(buttonStyle + buttonHoverStyle));
+        btnAdmin.setOnMouseExited(e -> btnAdmin.setStyle(buttonStyle));
+
+        buttonBox.getChildren().addAll(btnUsuario, btnAdmin);
+
+        // Footer
+        Label footerLabel = new Label("Desarrollado por estudiantes 4to semestre - 2025");
+        footerLabel.setStyle("-fx-text-fill: #90caf9; -fx-font-size: 12px;");
+
+        VBox footer = new VBox(footerLabel);
+        footer.setAlignment(Pos.CENTER);
+        footer.setPadding(new Insets(50, 0, 0, 0));
 
         // Eventos
-        btnUsuario.setOnAction(e -> mostrarVistaUsuario()); // abrir ventana de usuario (misma dimensión)
+        btnUsuario.setOnAction(e -> mostrarVistaUsuario());
         btnAdmin.setOnAction(e -> primaryStage.setScene(adminLoginScene));
 
-        mainRoot.getChildren().addAll(title, btnUsuario, btnAdmin);
+        mainRoot.getChildren().addAll(headerBox, buttonBox, footer);
         return mainRoot;
     }
 
@@ -230,41 +275,62 @@ public class FXLauncher extends Application {
 
     // Construye la escena de login admin
     private Scene buildAdminLoginScene() {
-        GridPane grid = new GridPane();
-        grid.setHgap(8);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
-        grid.setAlignment(Pos.CENTER);
+        VBox root = new VBox(25);
+        root.setPadding(new Insets(40));
+        root.setAlignment(Pos.CENTER);
+        root.setStyle("-fx-background-color: linear-gradient(to bottom right, #1a237e, #0d47a1);");
 
-        Label lbl = new Label("Login Administrador");
-        lbl.setStyle("-fx-font-size:16px;");
-        GridPane.setColumnSpan(lbl, 2);
+        // Header
+        Label title = new Label("Acceso Administrativo");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: white;");
 
-        Label luser = new Label("Usuario:");
+        // Formulario
+        VBox formBox = new VBox(15);
+        formBox.setAlignment(Pos.CENTER);
+        formBox.setPadding(new Insets(30));
+        formBox.setMaxWidth(400);
+        formBox.setStyle("-fx-background-color: white; -fx-background-radius: 10;");
+
+        // Campos de entrada con íconos
         TextField tfUser = new TextField();
-        Label lpass = new Label("Contraseña:");
+        tfUser.setPromptText("Usuario");
+        tfUser.setStyle("-fx-font-size: 14px; -fx-pref-height: 35px;");
+
         PasswordField pf = new PasswordField();
+        pf.setPromptText("Contraseña");
+        pf.setStyle("-fx-font-size: 14px; -fx-pref-height: 35px;");
 
         Button btnIngresar = new Button("Ingresar");
+        btnIngresar.setStyle(
+                "-fx-background-color: #2196f3;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-pref-width: 200px;" +
+                        "-fx-pref-height: 40px;" +
+                        "-fx-background-radius: 20;"
+        );
+
         Button btnVolver = new Button("Volver");
+        btnVolver.setStyle(
+                "-fx-background-color: transparent;" +
+                        "-fx-text-fill: #666666;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-pref-width: 200px;" +
+                        "-fx-border-color: #666666;" +
+                        "-fx-border-radius: 20;"
+        );
 
         Label lblInfo = new Label();
-        lblInfo.setStyle("-fx-text-fill: red;");
+        lblInfo.setStyle("-fx-text-fill: #f44336; -fx-font-size: 13px;");
 
-        grid.add(lbl, 0, 0);
-        grid.add(luser, 0, 1);
-        grid.add(tfUser, 1, 1);
-        grid.add(lpass, 0, 2);
-        grid.add(pf, 1, 2);
-        grid.add(btnIngresar, 0, 3);
-        grid.add(btnVolver, 1, 3);
-        grid.add(lblInfo, 0, 4, 2, 1);
+        formBox.getChildren().addAll(tfUser, pf, btnIngresar, btnVolver, lblInfo);
 
+        // Eventos
         btnVolver.setOnAction(ev -> {
             tfUser.clear();
             pf.clear();
             lblInfo.setText("");
-            primaryStage.setScene(new Scene(createMainMenu(), 600, 400));
+            primaryStage.setScene(new Scene(createMainMenu(), WINDOW_W, WINDOW_H));
         });
 
         btnIngresar.setOnAction(ev -> {
@@ -306,7 +372,8 @@ public class FXLauncher extends Application {
             new Thread(authTask).start();
         });
 
-        return new Scene(grid, 420, 240);
+        root.getChildren().addAll(title, formBox);
+        return new Scene(root, WINDOW_W, WINDOW_H);
     }
 
     // Construye la escena del panel admin (ejecutar SQL y consultas)
