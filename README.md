@@ -66,7 +66,8 @@
 5. Ejecutar aplicación
 
 ## Credenciales por Defecto
-- Admin: admin123
+- User: admin
+- Pass: admin123
 
 
 
