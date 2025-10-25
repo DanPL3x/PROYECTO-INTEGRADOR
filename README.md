@@ -1,4 +1,4 @@
-# PROYECTO INTEGRADOR II (Sistema de Seguridad Ciudadana) - Cali
+# PROYECTO INTEGRADOR II (Chat seguridad cali)
 
 ## Integrantes del Proyecto
 - Sebastian Almendra
@@ -66,7 +66,7 @@
 5. Ejecutar aplicación
 
 ## Credenciales por Defecto
-- Admin: ???
+- Admin: admin123
 
 
 
