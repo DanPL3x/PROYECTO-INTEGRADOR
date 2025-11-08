@@ -3,8 +3,6 @@ package com.proyecto.integrador.controller;
 
 import java.awt.event.*;
 import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import com.proyecto.integrador.model.*;
 import com.proyecto.integrador.view.*;
 import com.proyecto.integrador.view.ModuloUbicacion.EditarUbicacion;
@@ -21,6 +19,9 @@ import com.proyecto.integrador.view.ModuloLugarDenuncia.CrearLugarDenuncia;
 import com.proyecto.integrador.view.ModuloLugarDenuncia.EliminarLugarDenuncia;
 
 import javax.swing.JOptionPane;
+import com.proyecto.integrador.model.ConsultasDB;
+import com.proyecto.integrador.model.AdminService;
+import com.proyecto.integrador.model.AdminAuth;
 
 
 public class ControladorProyecto {
@@ -42,6 +43,7 @@ public class ControladorProyecto {
     private CrearLugarDenuncia crearLugDen;
     private EliminarLugarDenuncia eliminarLugDen;
     private Riesgo riesgo;
+    private ConsultasDB consultasDB;
 
     private String texto;
     private String usuario;
@@ -67,6 +69,7 @@ public class ControladorProyecto {
         this.vista = miVista;
         this.vista.ListenerLogin(new Listener());
         this.vista.ListenerUser(new Listener());
+        consultasDB = new ConsultasDB(conexion);
     }
 
     private class Listener implements ActionListener {
@@ -86,9 +89,6 @@ public class ControladorProyecto {
                     vistaUser.ListenerDenunciaReciente(new Listener());
                     vistaUser.ListenerLugarDenuncia(new Listener());
                     vistaUser.ListenerRegresar(new Listener());
-                    vistaUser.ListenerConsultaZonas(new Listener());
-                    vistaUser.ListenerConsultaTipos(new Listener());
-                    vistaUser.ListenerConsultaPuntosCardinales(new Listener());
                     vistaUser.setVisible(true);
                     vista.dispose();
                 }
@@ -96,8 +96,7 @@ public class ControladorProyecto {
                     case "Login":
                         usuario = login.getUsuario().getText();
                         pass = new String(login.getContraseña().getPassword());
-                        User user = new User(conexion);
-                        if (user.userAutenticacion(usuario, pass)) {
+                        if (AdminAuth.authenticate(conexion, usuario, pass)) {
                             JOptionPane.showMessageDialog(null, "Bienvenido", "", JOptionPane.INFORMATION_MESSAGE);
                             vistaAdmin = new VistaAdmin();
                             vistaAdmin.ListenerModuloUbicacion(new Listener());
@@ -145,7 +144,7 @@ public class ControladorProyecto {
                         vistaUser.setChat(texto);
                         break;
                     case "PuntosCardinales":
-                        texto = ubicacion.informarUbicacion();
+                        texto = ubicacion.informarPuntosCardinales();
                         vistaUser.setChat(texto);
                         break;
                     case "Regresar":
@@ -163,7 +162,7 @@ public class ControladorProyecto {
                         vistaAdmin.dispose();
                         break;
                     case "ConsultarModUbi":
-                        texto = ubicacion.informarUbicacionAdmin();
+                        texto = ubicacion.informarUbicacion();
                         modUbi.setChatAdmin(texto);
                         break;
                     case "EditarModUbi":
@@ -227,8 +226,6 @@ public class ControladorProyecto {
                                     JOptionPane.ERROR_MESSAGE);
                         } else {
                             ubicacion.CrearUbicacion(Integer.parseInt(CrearIdUbi), CrearNombreUbi,
-                                    CrearPuntoCardUbi,
-                                    CrearTipoUbi,
                                     Integer.parseInt(CrearComuna), Integer.parseInt(CrearIdZonaUbi),
                                     Integer.parseInt(CrearIdNivelUbi));
 
@@ -480,6 +477,8 @@ public class ControladorProyecto {
 
             Exception e) {
                 e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error: " + e.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }

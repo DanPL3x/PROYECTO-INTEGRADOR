@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml" prefWidth="1000" prefHeight="700">
+    <left>
+        <VBox spacing="8" padding="8" prefWidth="240">
+            <Label text="Tablas" style="-fx-font-weight:bold;"/>
+            <RadioButton fx:id="rDelitos" text="Delitos"/>
+            <RadioButton fx:id="rDenuncias" text="Denuncias"/>
+            <RadioButton fx:id="rLugarDenuncias" text="LugarDenuncias"/>
+            <Separator/>
+            <Button fx:id="btnEjecutar" text="Ejecutar consulta" maxWidth="Infinity"/>
+        </VBox>
+    </left>
+    <center>
+        <TextArea fx:id="txtResultado" wrapText="false" style="-fx-font-family: monospace;"/>
+    </center>
+    <right>
+        <VBox spacing="8" padding="8" prefWidth="420">
+            <Label text="CRUD - Formulario"/>
+            <ScrollPane fitToWidth="true" prefHeight="320">
+                <content>
+                    <VBox fx:id="formBox" spacing="6" padding="6"/>
+                </content>
+            </ScrollPane>
+            <HBox spacing="8">
+                <Button fx:id="btnCreate" text="Crear"/>
+                <Button fx:id="btnUpdate" text="Actualizar"/>
+                <Button fx:id="btnDelete" text="Eliminar"/>
+                <Button fx:id="btnRefresh" text="Refrescar"/>
+            </HBox>
+            <Separator/>
+            <Label fx:id="infoCrud" wrapText="true"/>
+        </VBox>
+    </right>
+</BorderPane>

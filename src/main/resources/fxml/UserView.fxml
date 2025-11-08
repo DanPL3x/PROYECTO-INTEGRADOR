@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml" prefWidth="900" prefHeight="700">
+  <left>
+    <ScrollPane fitToWidth="true" prefWidth="300">
+      <content>
+        <VBox fx:id="leftButtons" spacing="8" padding="8">
+          <Label text="Consultas rápidas" style="-fx-font-weight:bold;"/>
+          <Button fx:id="bBarrios" text="Barrios más Peligrosos"/>
+          <Button fx:id="bCAIs" text="CAIs y Estaciones"/>
+          <Button fx:id="bRecientes" text="Delitos 24h"/>
+          <Button fx:id="bZonasSeguras" text="Zonas Seguras (Bajo)"/>
+          <Button fx:id="bDelitos" text="Delitos Frecuentes"/>
+          <Button fx:id="bHorarios" text="Horarios más Peligrosos"/>
+          <Button fx:id="bLugaresMas" text="Lugares con más Denuncias"/>
+          <Button fx:id="bDenunciasPorBarrio" text="Denuncias por Barrio"/>
+          <Button fx:id="bDenunciasPorDelito" text="Denuncias por Delito"/>
+          <Button fx:id="bPuntosCard" text="Puntos Cardinales"/>
+          <Button fx:id="bUbicaciones" text="Listar Ubicaciones (completo)"/>
+        </VBox>
+      </content>
+    </ScrollPane>
+  </left>
+  <center>
+    <TextArea fx:id="resultArea" wrapText="true" style="-fx-font-family: monospace;"/>
+  </center>
+  <bottom>
+    <HBox alignment="CENTER_RIGHT" padding="8">
+      <Button fx:id="btnClose" text="Cerrar"/>
+    </HBox>
+  </bottom>
+</BorderPane>
