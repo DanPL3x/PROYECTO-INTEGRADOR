@@ -95,9 +95,8 @@ Si quieres, yo:
 - 3) Te doy los VM args exactos si me indicas la ruta al SDK de JavaFX que descargaste.
 
 ## Credenciales por Defecto
-- Admin: ??
-
-
+admin
+admin123
 
 
 
