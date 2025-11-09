@@ -5,7 +5,6 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -24,7 +23,6 @@ import javafx.scene.input.MouseEvent;
 import com.proyecto.integrador.model.Notification;
 import com.proyecto.integrador.model.NotificationDAO;
 import java.time.format.DateTimeFormatter;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import java.io.InputStream;
@@ -37,6 +35,8 @@ import javafx.scene.text.Font;
 import javafx.scene.control.Tooltip;
 import java.util.Map;
 import java.util.HashMap;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.scene.Node; // <--- IMPORT ADDED
 
 public class FXLauncher extends Application {
 	private Stage primaryStage;
@@ -60,6 +60,10 @@ public class FXLauncher extends Application {
 
 	private static final int WINDOW_W = 900;
 	private static final int WINDOW_H = 700;
+
+	// NUEVO: tamaño deseado para ventanas de perfil (usuario/admin)
+	private static final double PROFILE_W = 1300; // ancho objetivo
+	private static final double PROFILE_H = 720;  // alto objetivo
 
 	@Override
 	public void start(Stage primaryStage) {
@@ -111,7 +115,7 @@ public class FXLauncher extends Application {
 
 		// Construir escenas programáticamente (sin FXML)
 		Parent mainRoot = buildMainMenu();
-		Scene mainScene = new Scene(mainRoot, WINDOW_W, WINDOW_H);
+		Scene mainScene = new Scene(mainRoot, PROFILE_W, PROFILE_H); // usar dimensiones perfil para toda la app
 
 		// Crear escena admin y dejarla lista
 		adminScene = buildAdminScene();
@@ -128,98 +132,91 @@ public class FXLauncher extends Application {
 
 	// Menú principal programático (mockup card centrado) - ahora con MenuBar y status bar
 	private Parent buildMainMenu() {
-		// MenuBar simple
-		MenuBar menuBar = new MenuBar();
-		Menu menuFile = new Menu("Archivo");
-		MenuItem miExit = new MenuItem("Salir");
-		miExit.setOnAction(e -> {
-			Conexion.closeConnection();
-			Platform.exit();
-		});
-		menuFile.getItems().add(miExit);
-		Menu menuHelp = new Menu("Ayuda");
-		MenuItem miAbout = new MenuItem("Acerca");
-		miAbout.setOnAction(e -> new Alert(Alert.AlertType.INFORMATION, "Portal Seguridad Cali\nVersión de prueba").showAndWait());
-		menuHelp.getItems().add(miAbout);
-		menuBar.getMenus().addAll(menuFile, menuHelp);
+		// Contenido central: título + subtítulo + tiles grandes centradas
+		VBox center = new VBox(18);
+		center.setPadding(new Insets(32));
+		center.setAlignment(Pos.TOP_LEFT);
 
-		// contenido principal (tarjeta)
-		StackPane cardHolder = new StackPane();
-		cardHolder.setStyle("-fx-background-color: linear-gradient(to bottom right, #f0f4ff, #e8f0ff);");
-		VBox card = new VBox(18);
-		card.setMaxWidth(760);
-		card.setPadding(new Insets(36));
-		card.setAlignment(Pos.TOP_CENTER);
-		card.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 20, 0, 0, 6);");
-
-		// Reemplazar o añadir cabecera para incluir logo junto al título
-		// -- start header change --
+		// Header (logo + title)
 		HBox header = new HBox(12);
 		header.setAlignment(Pos.CENTER_LEFT);
 		if (appLogo != null) {
 			ImageView logoView = new ImageView(appLogo);
-			logoView.setFitWidth(56);
-			logoView.setFitHeight(56);
+			logoView.setFitWidth(64);
+			logoView.setFitHeight(64);
 			header.getChildren().add(logoView);
 		}
 		VBox titles = new VBox(2);
 		Label title = new Label("Portal Seguridad Cali");
-		title.setFont(Font.font(24));
-		title.setStyle("-fx-font-weight: 700; -fx-text-fill: #222;");
+		title.setStyle("-fx-font-size:28px; -fx-font-weight:700; -fx-text-fill:#222;");
 		Label subtitle = new Label("Selecciona tu portal de acceso");
-		subtitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #666;");
+		subtitle.setStyle("-fx-font-size:14px; -fx-text-fill:#666;");
 		titles.getChildren().addAll(title, subtitle);
 		header.getChildren().add(titles);
-		// insertar el header dentro de la card (sustituye el title/subtitle simples)
-		// ...existing code that builds 'card'...
-		// en lugar de: card.getChildren().addAll(title, subtitle, tiles, footerCard);
-		// usar:
-		card.getChildren().clear();
-		
-		// Tiles y footer (nombres locales no confunden con campos de clase)
-		HBox tilesBox = new HBox(24);
-		tilesBox.setAlignment(Pos.CENTER);
 
-		// crea tiles (intenta cargar imágenes desde resources/images; si no existen usa emoji de respaldo)
-		VBox tileUser = makeTile("Usuario", "#4da6ff", "/images/user_icon_new.png", "👤");
-		VBox tileAdmin = makeTile("Administrador", "#42b983", "/images/admin_icon.png", "👨‍💼");
-		Tooltip.install(tileUser, new Tooltip("Entrar al portal de consultas ciudadanas"));
-		Tooltip.install(tileAdmin, new Tooltip("Acceder al panel administrativo"));
-		tileUser.setOnMouseClicked(e -> showUserWindow());
-		tileAdmin.setOnMouseClicked(e -> primaryStage.setScene(buildAdminLoginScene()));
-		tilesBox.getChildren().addAll(tileUser, tileAdmin);
+		// Tiles container: centra y adapta a ancho (2 columnas en desktop)
+		FlowPane tiles = new FlowPane();
+		tiles.setHgap(28);
+		tiles.setVgap(20);
+		tiles.setPadding(new Insets(24, 0, 0, 0));
+		tiles.setPrefWrapLength(PROFILE_W - 300); // ayuda al wrapping
+		tiles.setAlignment(Pos.CENTER_LEFT);
 
+		// Helper local para crear las tarjetas grandes estilo web
+		java.util.function.BiFunction<String,String, StackPane> makeCard = (labelText, iconPath) -> {
+			StackPane card = new StackPane();
+			card.setPrefSize(420, 200);
+			card.setMaxSize(420, 200);
+			card.setStyle("-fx-background-color: white; -fx-border-color: #e9e9e9; -fx-border-radius:10; -fx-background-radius:10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 12, 0, 0, 6);");
+			VBox content = new VBox(10);
+			content.setAlignment(Pos.CENTER);
+			// intentar cargar icono; si no, emoji fallback
+			ImageView iv = null;
+			try (InputStream is = getClass().getResourceAsStream(iconPath)) {
+				if (is != null) {
+					Image img = new Image(is, 96, 96, true, true);
+					iv = new ImageView(img);
+				}
+			} catch (Exception ex) { /* ignora */ }
+			if (iv != null) content.getChildren().add(iv);
+			else {
+				Label emoji = new Label("👤");
+				emoji.setStyle("-fx-font-size:64px;");
+				content.getChildren().add(emoji);
+			}
+			Label lbl = new Label(labelText);
+			lbl.setStyle("-fx-font-size:18px; -fx-font-weight:700; -fx-text-fill:#222;");
+			content.getChildren().add(lbl);
+			card.getChildren().add(content);
+
+			// hover
+			card.setOnMouseEntered(e -> card.setStyle("-fx-background-color: white; -fx-border-color: #e1e7f3; -fx-border-radius:10; -fx-background-radius:10; -fx-effect: dropshadow(gaussian, rgba(31,97,204,0.12), 18, 0, 0, 8);"));
+			card.setOnMouseExited(e -> card.setStyle("-fx-background-color: white; -fx-border-color: #e9e9e9; -fx-border-radius:10; -fx-background-radius:10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 12, 0, 0, 6);"));
+			return card;
+		};
+
+		StackPane cardUser = makeCard.apply("Usuario", "/images/user_icon_new.png");
+		StackPane cardAdmin = makeCard.apply("Administrador", "/images/admin_icon.png");
+
+		// click handlers
+		cardUser.setOnMouseClicked(e -> showUserWindow());
+		cardAdmin.setOnMouseClicked(e -> primaryStage.setScene(buildAdminLoginScene()));
+
+		tiles.getChildren().addAll(cardUser, cardAdmin);
+
+		// Añadir header y tiles al centro
+		center.getChildren().addAll(header, tiles);
+
+		// Pie de página pequeño
 		Label footerLabel = new Label("Desarrollado por estudiantes de 4to semestre - Proyecto Integrador");
 		footerLabel.setStyle("-fx-text-fill: #999; -fx-font-size: 12px;");
+		VBox wrapper = new VBox(12, center, footerLabel);
+		wrapper.setPadding(new Insets(12));
+		wrapper.setAlignment(Pos.TOP_LEFT);
 
-		// Poblar el card de forma segura (añadir sólo nodes no nulos)
-		card.getChildren().clear();
-		if (header != null) card.getChildren().add(header);
-		if (tilesBox != null) card.getChildren().add(tilesBox);
-		if (footerLabel != null) card.getChildren().add(footerLabel);
-
-		// Asegurar que el card esté dentro del cardHolder
-		cardHolder.getChildren().clear();
-		cardHolder.getChildren().add(card);
-		// -- end header change --
-
-		// Status bar
-		HBox statusBar = new HBox();
-		statusBar.setPadding(new Insets(6));
-		statusBar.setStyle("-fx-background-color:#f5f5f5; -fx-border-color:#e0e0e0; -fx-border-width:1 0 0 0;");
-		statusLabel = new Label("BD: Desconocida");
-		statusLabel.setStyle("-fx-text-fill:#333;");
-		statusBar.getChildren().add(statusLabel);
-
-		// Componer layout vertical: menubar, card, status
-		VBox root = new VBox();
-		root.getChildren().addAll(menuBar, cardHolder, statusBar);
-		VBox.setVgrow(cardHolder, Priority.ALWAYS);
-
-		// Estética: fuente global pequeña para botones
-		root.setStyle("-fx-font-family: 'Segoe UI', sans-serif;");
-
-		return root;
+		// Envolver en el shell para aspecto web (topbar + sidebar)
+		Parent shell = createAppShell(wrapper, null); // la createAppShell pone el topbar/side
+		return shell;
 	}
 
 	// crea tile con imagen (resourcePath) o emojiFallback
@@ -258,42 +255,54 @@ public class FXLauncher extends Application {
 		return tile;
 	}
 
-	// Admin login scene (programática)
+	// Admin login scene (programática) - diseño tipo web/desktop dentro del shell
 	private Scene buildAdminLoginScene() {
-		StackPane root = new StackPane();
-		root.setStyle("-fx-background-color: linear-gradient(to bottom right, #f0f4ff, #e8f0ff);");
-
-		VBox card = new VBox(12);
-		card.setMaxWidth(460);
-		card.setPadding(new Insets(26));
-		card.setAlignment(Pos.CENTER);
-		card.setStyle("-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 16, 0, 0, 8);");
+		// Formulario centrado, ancho fijo, estilo de escritorio
+		GridPane form = new GridPane();
+		form.setHgap(12);
+		form.setVgap(10);
+		form.setPadding(new Insets(24));
+		form.setMaxWidth(520);
+		form.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 12, 0, 0, 6);");
 
 		Label title = new Label("Administrador - Iniciar Sesión");
-		title.setStyle("-fx-font-size: 20px; -fx-font-weight: 700; -fx-text-fill: #222;");
+		title.setStyle("-fx-font-size:20px; -fx-font-weight:700; -fx-text-fill: #222;");
+		GridPane.setColumnSpan(title, 2);
+		form.add(title, 0, 0);
 
+		Label lblUser = new Label("Usuario:");
 		TextField tfUser = new TextField();
 		tfUser.setPromptText("Usuario");
-		tfUser.setMaxWidth(300);
+		tfUser.setMaxWidth(Double.MAX_VALUE);
+		tfUser.setPrefWidth(360);
 
+		Label lblPass = new Label("Contraseña:");
 		PasswordField pf = new PasswordField();
 		pf.setPromptText("Contraseña");
-		pf.setMaxWidth(300);
+		pf.setMaxWidth(Double.MAX_VALUE);
+		pf.setPrefWidth(360);
+
+		form.add(lblUser, 0, 1);
+		form.add(tfUser, 1, 1);
+		form.add(lblPass, 0, 2);
+		form.add(pf, 1, 2);
 
 		HBox buttons = new HBox(12);
-		buttons.setAlignment(Pos.CENTER);
-
+		buttons.setAlignment(Pos.CENTER_LEFT);
 		Button btnIngresar = new Button("Ingresar");
-		btnIngresar.setStyle("-fx-background-color: #42b983; -fx-text-fill: white;");
+		btnIngresar.setStyle("-fx-background-color:#42b983; -fx-text-fill:white; -fx-font-weight:600; -fx-pref-width:120; -fx-pref-height:36;");
 		Button btnVolver = new Button("Volver");
-		btnVolver.setStyle("-fx-background-color: transparent; -fx-border-color: #ddd;");
-
+		btnVolver.setStyle("-fx-background-color: transparent; -fx-border-color:#ddd; -fx-pref-width:90; -fx-pref-height:36;");
 		buttons.getChildren().addAll(btnIngresar, btnVolver);
+		form.add(buttons, 1, 3);
 
 		Label lblInfo = new Label();
 		lblInfo.setStyle("-fx-text-fill: #d32f2f;");
+		GridPane.setColumnSpan(lblInfo, 2);
+		form.add(lblInfo, 0, 4);
 
-		btnVolver.setOnAction(ev -> primaryStage.setScene(new Scene(buildMainMenu(), WINDOW_W, WINDOW_H)));
+		// Acciones
+		btnVolver.setOnAction(ev -> primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H)));
 
 		btnIngresar.setOnAction(ev -> {
 			String usuario = tfUser.getText().trim();
@@ -314,6 +323,7 @@ public class FXLauncher extends Application {
 						return AdminAuth.authenticate(conexion, usuario, pass);
 					} catch (Exception ex) {
 						ex.printStackTrace();
+						Platform.runLater(() -> lblInfo.setText("Error al autenticar: " + ex.getMessage()));
 						return false;
 					}
 				}
@@ -325,6 +335,9 @@ public class FXLauncher extends Application {
 					pf.clear();
 					lblInfo.setText("");
 					primaryStage.setScene(adminScene);
+					primaryStage.setWidth(PROFILE_W);
+					primaryStage.setHeight(PROFILE_H);
+					primaryStage.centerOnScreen();
 				} else {
 					lblInfo.setText("Credenciales incorrectas");
 				}
@@ -333,63 +346,18 @@ public class FXLauncher extends Application {
 			new Thread(authTask).start();
 		});
 
-		card.getChildren().addAll(title, tfUser, pf, buttons, lblInfo);
-		root.getChildren().add(card);
-		StackPane.setAlignment(card, Pos.CENTER);
-		return new Scene(root, WINDOW_W, WINDOW_H);
+		// Envolver el form en el shell para aspecto "web"
+		Parent shell = createAppShell(form, "Acceso Administrador");
+		return new Scene(shell, PROFILE_W, PROFILE_H);
 	}
 
 	// Admin panel (programático) con CRUD basics (lista de tablas, results area, form placeholder)
 	private Scene buildAdminScene() {
+		// Conservamos el BorderPane 'root' tal cual para el contenido del centro del shell
 		BorderPane root = new BorderPane();
 		root.setPadding(new Insets(12));
 
-		// Cabecera: añadir logo a la izquierda si existe
-		HBox header = new HBox(12);
-		header.setPadding(new Insets(8));
-		header.setAlignment(Pos.CENTER_LEFT);
-
-		if (appLogo != null) {
-			ImageView adminLogo = new ImageView(appLogo);
-			adminLogo.setFitWidth(48);
-			adminLogo.setFitHeight(48);
-			header.getChildren().add(adminLogo);
-		} else {
-			Label emoji = new Label("👨‍💼");
-			emoji.setStyle("-fx-font-size:36px;");
-			header.getChildren().add(emoji);
-		}
-
-		Label title = new Label("Panel Administrativo");
-		title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-		Label subtitle = new Label("Gestión de datos y consultas");
-		subtitle.setStyle("-fx-text-fill: #666;");
-
-		VBox titleBox = new VBox(2, title, subtitle);
-
-		Region spacer = new Region();
-		HBox.setHgrow(spacer, Priority.ALWAYS);
-
-		// Badge notificaciones: bind al tamaño de 'notifications'
-		Label notifBadge = new Label();
-		notifBadge.getStyleClass().add("badge");
-		notifBadge.setStyle("-fx-background-color:#e74c3c; -fx-text-fill:white; -fx-padding:4 8; -fx-background-radius:12;");
-		if (notifications != null) {
-			notifBadge.textProperty().bind(Bindings.size(notifications).asString());
-			Tooltip.install(notifBadge, new Tooltip("Notificaciones pendientes"));
-		} else {
-			notifBadge.setText("0");
-		}
-
-		Button btnLogout = new Button("Cerrar sesión");
-		btnLogout.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
-		btnLogout.setOnAction(e -> primaryStage.setScene(new Scene(buildMainMenu(), WINDOW_W, WINDOW_H)));
-
-		header.getChildren().addAll(titleBox, spacer, notifBadge, btnLogout);
-
-		root.setTop(header);
-
-		// Left: selección de tablas (igual funcionalidad que antes)
+		// Left: selección de tablas
 		VBox left = new VBox(8);
 		left.setPadding(new Insets(0, 10, 0, 0));
 		left.setPrefWidth(240);
@@ -409,13 +377,15 @@ public class FXLauncher extends Application {
 		btnEjecutar.setStyle("-fx-background-color:#2b7cff; -fx-text-fill:white;");
 		left.getChildren().addAll(new Separator(), btnEjecutar);
 
-		// Center: resultados (texto formateado)
-		TextArea txtResultado = new TextArea();
-		txtResultado.setEditable(false);
-		txtResultado.setWrapText(false);
-		txtResultado.setStyle("-fx-font-family: monospace; -fx-font-size: 12px;");
+		// Center: resultados ahora con container para TableView o TextArea
+		BorderPane resultsPane = new BorderPane();
+		TextArea txtResultadoArea = new TextArea();
+		txtResultadoArea.setEditable(false);
+		txtResultadoArea.setWrapText(false);
+		txtResultadoArea.setStyle("-fx-font-family: monospace; -fx-font-size: 12px;");
+		resultsPane.setCenter(txtResultadoArea);
 
-		// Right: formulario CRUD simplificado (mantengo formBox para compatibilidad)
+		// Right: formulario CRUD simplificado
 		VBox right = new VBox(8);
 		right.setPadding(new Insets(8));
 		right.setPrefWidth(420);
@@ -444,7 +414,7 @@ public class FXLauncher extends Application {
 
 		right.getChildren().addAll(crudTitle, new Label("Formulario:"), formScroll, actions, new Separator(), infoCrud);
 
-		// NUEVO: panel de notificaciones (encima del CRUD formBox)
+		// Panel de notificaciones (encima del CRUD formBox)
 		ListView<Notification> notifList = new ListView<>(notifications);
 		notifList.setPrefHeight(140);
 		notifList.setPlaceholder(new Label("No hay notificaciones"));
@@ -471,14 +441,15 @@ public class FXLauncher extends Application {
 				DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 				String full = String.format("NOTIFICACIÓN\nRemitente: %s\nFecha: %s\n\n%s",
 						sel.getSender(), sel.getTimestamp().format(fmt), sel.getMessage());
-				txtResultado.setText(full + "\n\n" + txtResultado.getText());
+				resultsPane.setCenter(txtResultadoArea);
+				txtResultadoArea.setText(full + "\n\n" + (txtResultadoArea.getText() != null ? txtResultadoArea.getText() : ""));
 			}
 		});
 
 		// insertar notificaciones al inicio del right pane
 		right.getChildren().add(0, new VBox(new Label("Notificaciones"), notifList, btnMarkRead, new Separator()));
 
-		// Wiring ejecución de consulta (ahora hace SELECT * FROM la tabla seleccionada)
+		// Wiring ejecución de consulta: usa helper que muestra tabla si es SELECT
 		btnEjecutar.setOnAction(ev -> {
 			Toggle selected = tg.getSelectedToggle();
 			if (selected == null) {
@@ -491,30 +462,12 @@ public class FXLauncher extends Application {
 				new Alert(Alert.AlertType.WARNING, "Nombre de tabla inválido.", ButtonType.OK).showAndWait();
 				return;
 			}
-			// Construir SQL: SELECT * FROM `tabla`
 			String sql = "SELECT * FROM `" + tabla.replace("`", "") + "`";
-			txtResultado.setText("Ejecutando: " + sql + " ...\n");
-			Task<String> task = new Task<>() {
-				@Override
-				protected String call() {
-					try {
-						if (conexion == null || conexion.isClosed()) {
-							conexion = conexionBD.getConnection();
-							consultasDB = new ConsultasDB(conexion);
-						}
-						return consultasDB.ejecutarConsultaFormateada(sql);
-					} catch (Exception ex) {
-						ex.printStackTrace();
-						return "Error ejecutando consulta: " + ex.getMessage();
-					}
-				}
-			};
-			task.setOnSucceeded(t -> txtResultado.setText(task.getValue()));
-			task.setOnFailed(t -> txtResultado.setText("Error en consulta: " + task.getException().getMessage()));
-			new Thread(task).start();
+			txtResultadoArea.setText("Ejecutando: " + sql + " ...\n");
+			executeQueryAndShowInTable(sql, resultsPane, txtResultadoArea);
 		});
 
-		// --- NUEVO: construir formulario dinámico al seleccionar tabla ---
+		// Construir formulario dinámico al seleccionar tabla
 		tg.selectedToggleProperty().addListener((obs, oldT, newT) -> {
 			formBox.getChildren().clear();
 			infoCrud.setText("");
@@ -535,7 +488,6 @@ public class FXLauncher extends Application {
 					TextField tf = new TextField();
 					tf.setPrefWidth(220);
 					tf.setPromptText(col);
-					// guardar nombre de columna en userData para recoger después
 					tf.setUserData(col);
 					row.getChildren().addAll(lbl, tf);
 					formBox.getChildren().add(row);
@@ -548,7 +500,7 @@ public class FXLauncher extends Application {
 			}
 		});
 
-		// --- CRUD: Crear ---
+		// CRUD handlers (Crear / Actualizar / Eliminar) - mantienen comportamiento previo
 		btnCreate.setOnAction(ev -> {
 			Toggle selected = tg.getSelectedToggle();
 			if (selected == null) { infoCrud.setText("Seleccione una tabla primero."); return; }
@@ -569,15 +521,10 @@ public class FXLauncher extends Application {
 					}
 				}
 			};
-			t.setOnSucceeded(r -> {
-				infoCrud.setText(t.getValue());
-				btnEjecutar.fire(); // refrescar lista
-			});
+			t.setOnSucceeded(r -> { infoCrud.setText(t.getValue()); btnEjecutar.fire(); });
 			t.setOnFailed(r -> infoCrud.setText("Error: " + t.getException().getMessage()));
 			new Thread(t).start();
 		});
-
-		// --- CRUD: Actualizar ---
 		btnUpdate.setOnAction(ev -> {
 			Toggle selected = tg.getSelectedToggle();
 			if (selected == null) { infoCrud.setText("Seleccione una tabla primero."); return; }
@@ -602,15 +549,10 @@ public class FXLauncher extends Application {
 					}
 				}
 			};
-			t.setOnSucceeded(r -> {
-				infoCrud.setText(t.getValue());
-				btnEjecutar.fire();
-			});
+			t.setOnSucceeded(r -> { infoCrud.setText(t.getValue()); btnEjecutar.fire(); });
 			t.setOnFailed(r -> infoCrud.setText("Error: " + t.getException().getMessage()));
 			new Thread(t).start();
 		});
-
-		// --- CRUD: Eliminar ---
 		btnDelete.setOnAction(ev -> {
 			Toggle selected = tg.getSelectedToggle();
 			if (selected == null) { infoCrud.setText("Seleccione una tabla primero."); return; }
@@ -643,7 +585,7 @@ public class FXLauncher extends Application {
 		});
 
 		root.setLeft(left);
-		root.setCenter(txtResultado);
+		root.setCenter(resultsPane);
 		root.setRight(right);
 
 		// Pie de página con ayuda rápida
@@ -655,35 +597,27 @@ public class FXLauncher extends Application {
 		footer.getChildren().add(help);
 		root.setBottom(footer);
 
-		return new Scene(root, 1000, 700);
+		// envolver el 'root' en el shell
+		Parent shell = createAppShell(root, "Panel Administrativo");
+		return new Scene(shell, PROFILE_W, PROFILE_H);
 	}
 
-	// Ventana usuario programática (mejorada: fuentes, botones grandes y campo Nombre)
+	// Ventana usuario ahora integrada en la ventana principal (no crea Stage nuevo)
 	private void showUserWindow() {
-		Stage userStage = new Stage();
-		userStage.initOwner(primaryStage);
-		userStage.initModality(Modality.NONE);
-		userStage.setTitle("Consultas Usuario - Seguridad (Cali)");
-
+		// Construir layout exactamente como antes pero sin Stage nuevo
 		BorderPane root = new BorderPane();
 		root.setPadding(new Insets(12));
-		// Fuente general más legible para este entorno
 		root.setStyle("-fx-font-family: 'Segoe UI', 'Helvetica Neue', Arial; -fx-font-size: 13px;");
 
-		// establecer icono del Stage usuario (si cargado)
-		if (appLogo != null) {
-			userStage.getIcons().add(appLogo);
-		}
-
-		// LEFT: botones de consultas con estilo más cómodo
-		VBox left = new VBox(10);
-		left.setPrefWidth(300);
-		left.setPadding(new Insets(12));
+		// LEFT: botones de consultas (mantener estilo y márgenes)
+		VBox left = new VBox(12);
+		left.setPrefWidth(260);
+		left.setPadding(new Insets(16));
 		left.setStyle("-fx-background-color: #f7f7f7; -fx-border-color: #e6e6e6; -fx-border-width: 0 1 0 0;");
 		Label leftTitle = new Label("Consultas rápidas");
 		leftTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 15px;");
 
-		// Helper para crear botones grandes
+		// Helper para crear botones grandes (usa el mismo estilo que antes)
 		java.util.function.Function<String, Button> makeBigBtn = (text) -> {
 			Button b = new Button(text);
 			b.setMaxWidth(Double.MAX_VALUE);
@@ -706,35 +640,31 @@ public class FXLauncher extends Application {
 
 		left.getChildren().addAll(leftTitle, bBarrios, bCAIs, bRecientes, bZonasSeguras, bDelitos, bHorarios, bLugaresMas, bDenunciasPorBarrio, bDenunciasPorDelito, bPuntosCard, bUbicaciones);
 
-		// CENTER: área de resultados con mayor padding
+		// CENTER: results container (muestra TableView para SELECT o TextArea para fallback)
+		BorderPane resultsPane = new BorderPane();
 		TextArea resultArea = new TextArea();
 		resultArea.setEditable(false);
 		resultArea.setWrapText(true);
 		resultArea.setStyle("-fx-font-family: monospace; -fx-font-size: 12px;");
-		BorderPane.setMargin(resultArea, new Insets(8));
+		resultsPane.setCenter(resultArea);
 
-		// RIGHT: panel de envío (mejorado)
+		// RIGHT: panel de envío (mantener tal cual)
 		VBox sendBox = new VBox(10);
 		sendBox.setPadding(new Insets(12));
 		sendBox.setPrefWidth(320);
 		sendBox.setStyle("-fx-background-color: white; -fx-border-color: #e6e6e6; -fx-border-width: 0 0 0 1;");
-
 		Label lblAskTitle = new Label("Escribe tu pregunta o comentario:");
 		lblAskTitle.setStyle("-fx-font-weight: 600;");
-
-		// Campo nombre opcional
 		Label lblName = new Label("Nombre (opcional):");
 		TextField tfName = new TextField();
 		tfName.setPromptText("Tu nombre");
 		tfName.setMaxWidth(Double.MAX_VALUE);
 		tfName.setStyle("-fx-padding:6; -fx-background-radius:6;");
-
 		TextArea txtAsk = new TextArea();
 		txtAsk.setPromptText("Escribe aquí... (pregunta o comentario)");
 		txtAsk.setPrefRowCount(6);
 		txtAsk.setWrapText(true);
 		txtAsk.setStyle("-fx-padding:6; -fx-background-radius:6;");
-
 		HBox sendRow = new HBox(8);
 		sendRow.setAlignment(Pos.CENTER_LEFT);
 		Button btnSend = new Button("Enviar al administrador");
@@ -743,57 +673,89 @@ public class FXLauncher extends Application {
 		Button btnClear = new Button("Limpiar");
 		btnClear.setStyle("-fx-background-color: #bdc3c7; -fx-text-fill: white; -fx-background-radius: 8; -fx-pref-height: 36;");
 		sendRow.getChildren().addAll(btnSend, btnClear);
-
 		Label lblHelp = new Label("Tu mensaje llegará al panel administrativo y se guardará para seguimiento.");
 		lblHelp.setStyle("-fx-font-size:11px; -fx-text-fill:#666;");
-
 		sendBox.getChildren().addAll(lblAskTitle, lblName, tfName, txtAsk, sendRow, lblHelp);
 
-		// Pie con botón cerrar más visible
+		// Bottom: cerrar (ahora vuelve al menu principal en la misma ventana)
 		HBox bottom = new HBox();
 		bottom.setPadding(new Insets(10));
 		bottom.setAlignment(Pos.CENTER_RIGHT);
 		Button btnClose = new Button("Cerrar");
 		btnClose.setStyle("-fx-background-color: #e99187; -fx-text-fill: white; -fx-background-radius:6; -fx-pref-height:34;");
-		btnClose.setOnAction(e -> userStage.close());
+		btnClose.setOnAction(e -> {
+			// volver al menú principal en la misma ventana
+			Parent main = buildMainMenu();
+			primaryStage.setScene(new Scene(main, PROFILE_W, PROFILE_H));
+			primaryStage.centerOnScreen();
+		});
 		bottom.getChildren().add(btnClose);
 
+		// Set panes
 		root.setLeft(left);
-		root.setCenter(resultArea);
+		root.setCenter(resultsPane);
 		root.setRight(sendBox);
 		root.setBottom(bottom);
 
-		// Mapear consultas (reutiliza runQueryAsync)
-		bBarrios.setOnAction(e -> runQueryAsync(resultArea, "Barrios más Peligrosos",
-				"SELECT z.nombre AS Barrio, COUNT(d.id_denuncia) AS Denuncias FROM Zona z JOIN Ubicacion u ON z.id_zona = u.id_zona JOIN LugarDenuncias l ON u.id_ubicacion = l.id_ubicacion JOIN Denuncia d ON l.id_lugar = d.id_lugar GROUP BY z.nombre ORDER BY Denuncias DESC LIMIT 10"));
-		bCAIs.setOnAction(e -> runQueryAsync(resultArea, "CAIs y Estaciones",
-				"SELECT nombre, direccion, telefono FROM LugarDenuncias WHERE nombre LIKE '%CAI%' OR nombre LIKE '%Estación%'"));
-		bRecientes.setOnAction(e -> runQueryAsync(resultArea, "Delitos Recientes (24h)",
-				"SELECT d.fecha, d.hora, d.descripcion, z.nombre AS zona FROM Denuncia d JOIN LugarDenuncias l ON d.id_lugar = l.id_lugar JOIN Ubicacion u ON l.id_ubicacion = u.id_ubicacion JOIN Zona z ON u.id_zona = z.id_zona WHERE d.fecha >= CURDATE() - INTERVAL 1 DAY ORDER BY d.fecha DESC, d.hora DESC"));
-		bZonasSeguras.setOnAction(e -> runQueryAsync(resultArea, "Zonas Seguras (Bajo)",
-				"SELECT DISTINCT z.nombre AS Zona, nr.riesgo AS Nivel FROM Zona z JOIN Ubicacion u ON z.id_zona = u.id_zona JOIN NivelRiesgo nr ON u.id_nivel = nr.id_nivel WHERE nr.riesgo = 'Bajo' LIMIT 50"));
-		bDelitos.setOnAction(e -> runQueryAsync(resultArea, "Delitos Frecuentes",
-				"SELECT tipo_delito, COUNT(*) AS Total FROM Delito GROUP BY tipo_delito ORDER BY Total DESC LIMIT 20"));
-		bHorarios.setOnAction(e -> runQueryAsync(resultArea, "Horarios más Peligrosos",
-				"SELECT HOUR(hora) AS Hora, COUNT(*) AS Denuncias FROM Denuncia GROUP BY HOUR(hora) ORDER BY Denuncias DESC LIMIT 24"));
-		bLugaresMas.setOnAction(e -> runQueryAsync(resultArea, "Lugares con más Denuncias",
-				"SELECT l.nombre AS Lugar, l.direccion AS Direccion, COUNT(d.id_denuncia) AS Denuncias FROM LugarDenuncias l LEFT JOIN Denuncia d ON l.id_lugar = d.id_lugar GROUP BY l.id_lugar ORDER BY Denuncias DESC LIMIT 20"));
-		bDenunciasPorBarrio.setOnAction(e -> runQueryAsync(resultArea, "Denuncias por Barrio",
-				"SELECT z.nombre AS Barrio, COUNT(d.id_denuncia) AS Denuncias FROM Denuncia d JOIN LugarDenuncias l ON d.id_lugar = l.id_lugar JOIN Ubicacion u ON l.id_ubicacion = u.id_ubicacion JOIN Zona z ON u.id_zona = z.id_zona GROUP BY z.nombre ORDER BY Denuncias DESC"));
-		bDenunciasPorDelito.setOnAction(e -> runQueryAsync(resultArea, "Denuncias por Delito",
-				"SELECT dl.tipo_delito AS Delito, COUNT(*) AS Total FROM Denuncia_Delito dd JOIN Delito dl ON dd.id_delito = dl.id_delito GROUP BY dl.tipo_delito ORDER BY Total DESC"));
-		bPuntosCard.setOnAction(e -> runQueryAsync(resultArea, "Puntos Cardinales",
-				"SELECT id_punto_cardinal, nombre FROM PuntoCardinal"));
-		bUbicaciones.setOnAction(e -> runQueryAsync(resultArea, "Ubicaciones (completo)",
-				"SELECT id_ubicacion, direccion, id_nivel, id_zona, id_punto_cardinal FROM Ubicacion LIMIT 200"));
+		// Asignar handlers a TODOS los botones, usando tabla formateada (executeQueryAndShowInTable)
+		bBarrios.setOnAction(e -> {
+			String sql = "SELECT z.nombre AS Barrio, COUNT(d.id_denuncia) AS Denuncias FROM Zona z JOIN Ubicacion u ON z.id_zona = u.id_zona JOIN LugarDenuncias l ON u.id_ubicacion = l.id_ubicacion JOIN Denuncia d ON l.id_lugar = d.id_lugar GROUP BY z.nombre ORDER BY Denuncias DESC LIMIT 10";
+			resultArea.setText("Ejecutando: Barrios más Peligrosos ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bCAIs.setOnAction(e -> {
+			String sql = "SELECT nombre, direccion, telefono FROM LugarDenuncias WHERE nombre LIKE '%CAI%' OR nombre LIKE '%Estación%'";
+			resultArea.setText("Ejecutando: CAIs y Estaciones ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bRecientes.setOnAction(e -> {
+			String sql = "SELECT d.fecha, d.hora, d.descripcion, z.nombre AS zona FROM Denuncia d JOIN LugarDenuncias l ON d.id_lugar = l.id_lugar JOIN Ubicacion u ON l.id_ubicacion = u.id_ubicacion JOIN Zona z ON u.id_zona = z.id_zona WHERE d.fecha >= CURDATE() - INTERVAL 1 DAY ORDER BY d.fecha DESC, d.hora DESC";
+			resultArea.setText("Ejecutando: Delitos 24h ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bZonasSeguras.setOnAction(e -> {
+			String sql = "SELECT DISTINCT z.nombre AS Zona, nr.riesgo AS Nivel FROM Zona z JOIN Ubicacion u ON z.id_zona = u.id_zona JOIN NivelRiesgo nr ON u.id_nivel = nr.id_nivel WHERE nr.riesgo = 'Bajo' LIMIT 50";
+			resultArea.setText("Ejecutando: Zonas Seguras (Bajo) ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bDelitos.setOnAction(e -> {
+			String sql = "SELECT tipo_delito, COUNT(*) AS Total FROM Delito GROUP BY tipo_delito ORDER BY Total DESC LIMIT 20";
+			resultArea.setText("Ejecutando: Delitos Frecuentes ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bHorarios.setOnAction(e -> {
+			String sql = "SELECT HOUR(hora) AS Hora, COUNT(*) AS Denuncias FROM Denuncia GROUP BY HOUR(hora) ORDER BY Denuncias DESC LIMIT 24";
+			resultArea.setText("Ejecutando: Horarios más Peligrosos ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bLugaresMas.setOnAction(e -> {
+			String sql = "SELECT l.nombre AS Lugar, l.direccion AS Direccion, COUNT(d.id_denuncia) AS Denuncias FROM LugarDenuncias l LEFT JOIN Denuncia d ON l.id_lugar = d.id_lugar GROUP BY l.id_lugar ORDER BY Denuncias DESC LIMIT 20";
+			resultArea.setText("Ejecutando: Lugares con más Denuncias ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bDenunciasPorBarrio.setOnAction(e -> {
+			String sql = "SELECT z.nombre AS Barrio, COUNT(d.id_denuncia) AS Denuncias FROM Denuncia d JOIN LugarDenuncias l ON d.id_lugar = l.id_lugar JOIN Ubicacion u ON l.id_ubicacion = u.id_ubicacion JOIN Zona z ON u.id_zona = z.id_zona GROUP BY z.nombre ORDER BY Denuncias DESC";
+			resultArea.setText("Ejecutando: Denuncias por Barrio ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bDenunciasPorDelito.setOnAction(e -> {
+			String sql = "SELECT dl.tipo_delito AS Delito, COUNT(*) AS Total FROM Denuncia_Delito dd JOIN Delito dl ON dd.id_delito = dl.id_delito GROUP BY dl.tipo_delito ORDER BY Total DESC";
+			resultArea.setText("Ejecutando: Denuncias por Delito ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bPuntosCard.setOnAction(e -> {
+			String sql = "SELECT id_punto_cardinal, nombre FROM PuntoCardinal";
+			resultArea.setText("Ejecutando: Puntos Cardinales ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
+		bUbicaciones.setOnAction(e -> {
+			String sql = "SELECT id_ubicacion, direccion, id_nivel, id_zona, id_punto_cardinal FROM Ubicacion LIMIT 200";
+			resultArea.setText("Ejecutando: Ubicaciones (completo) ...");
+			executeQueryAndShowInTable(sql, resultsPane, resultArea);
+		});
 
-		// Limpiar
+		// Limpiar y enviar mantienen su comportamiento
 		btnClear.setOnAction(e -> txtAsk.clear());
-
-		// Habilitar btnSend solo si hay texto
-		btnSend.disableProperty().bind(txtAsk.textProperty().isEmpty());
-
-		// Envío: persistir en BD y actualizar lista observable
 		btnSend.setOnAction(ev -> {
 			String text = txtAsk.getText();
 			if (text == null || text.trim().isEmpty()) {
@@ -814,36 +776,246 @@ public class FXLauncher extends Application {
 			}
 		});
 
-		Scene scene = new Scene(root, WINDOW_W, WINDOW_H);
-		userStage.setScene(scene);
-		userStage.show();
+		// Envolver la vista del usuario en el shell (topbar + sidebar) y colocar en la ventana principal
+		Parent shell = createAppShell(root, "Consultas Ciudadanas");
+		Scene scene = new Scene(shell, PROFILE_W, PROFILE_H);
+		primaryStage.setScene(scene);
+		primaryStage.centerOnScreen();
 	}
 
-	// Ejecuta consulta en background y vuelca a TextArea
-	private void runQueryAsync(TextArea target, String label, String sql) {
-		target.setText("Ejecutando: " + label + " ...\n");
-		Task<String> task = new Task<>() {
+	// --- START: NEW: app shell helpers (sidebar + topbar) ---
+	// Crear top bar azul similar a dashboard web
+	private HBox createTopBar(String pageTitle) {
+		HBox top = new HBox();
+		top.setStyle("-fx-background-color: #2f98e6; -fx-padding: 12px; -fx-alignment: center-left;");
+		top.setSpacing(12);
+
+		// menu icon (simple)
+		Label menuIcon = new Label("\u2630"); // hamburger
+		menuIcon.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-padding: 0 12 0 12;");
+
+		// title
+		Label title = new Label(pageTitle != null ? pageTitle : "Portal Seguridad Cali");
+		title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: 600;");
+
+		Region spacer = new Region();
+		HBox.setHgrow(spacer, Priority.ALWAYS);
+
+		// user avatar / info on the right
+		HBox userBox = new HBox(8);
+		userBox.setAlignment(Pos.CENTER_RIGHT);
+		ImageView avatar = null;
+		if (appLogo != null) {
+			try {
+				avatar = new ImageView(appLogo);
+				avatar.setFitWidth(36);
+				avatar.setFitHeight(36);
+				avatar.setStyle("-fx-background-radius: 18;");
+			} catch (Exception ex) {
+				avatar = null;
+			}
+		}
+		Label userLabel = new Label("admin");
+		userLabel.setStyle("-fx-text-fill: white; -fx-font-weight: 600;");
+		if (avatar != null) userBox.getChildren().addAll(avatar, userLabel);
+		else userBox.getChildren().add(userLabel);
+
+		top.getChildren().addAll(menuIcon, title, spacer, userBox);
+		return top;
+	}
+
+	// Crear sidebar izquierdo con íconos y botones
+	private VBox createSidebar() {
+		VBox side = new VBox(12);
+		side.setStyle("-fx-background-color: #ffffff; -fx-padding: 18px 12px; -fx-border-color: rgba(0,0,0,0.04); -fx-border-width: 0 1 0 0;");
+		side.setPrefWidth(220);
+		side.setMinWidth(180);
+
+		// logo area
+		VBox logoArea = new VBox(6);
+		logoArea.setAlignment(Pos.CENTER_LEFT);
+		if (appLogo != null) {
+			ImageView logo = new ImageView(appLogo);
+			logo.setFitWidth(48);
+			logo.setFitHeight(48);
+			logoArea.getChildren().add(logo);
+		}
+		Label appName = new Label("Portal Seguridad");
+		appName.setStyle("-fx-font-weight:700; -fx-font-size: 14px;");
+		logoArea.getChildren().add(appName);
+
+		// nav buttons
+		Button btnHome = new Button("Inicio");
+		Button btnUsuario = new Button("Consultas");
+		Button btnAdmin = new Button("Administración");
+		// Nuevo: botón Ayuda
+		Button btnHelp = new Button("Ayuda");
+		for (Button b : new Button[]{btnHome, btnUsuario, btnAdmin}) {
+			b.setMaxWidth(Double.MAX_VALUE);
+			b.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT; -fx-padding:8 12;");
+		}
+		// estilo coherente para Ayuda
+		btnHelp.setMaxWidth(Double.MAX_VALUE);
+		btnHelp.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT; -fx-padding:8 12;");
+
+		// small handlers to show scenes (non-intrusive)
+		btnHome.setOnAction(e -> primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H)));
+		btnUsuario.setOnAction(e -> showUserWindow());
+		btnAdmin.setOnAction(e -> primaryStage.setScene(buildAdminLoginScene()));
+		// handler para la vista de ayuda (misma ventana)
+		btnHelp.setOnAction(e -> showHelpView());
+
+		// footer small copyright
+		Region spacer = new Region();
+		VBox.setVgrow(spacer, Priority.ALWAYS);
+		Label copy = new Label("\u00A9 2024 Proyecto Integrador");
+		copy.setStyle("-fx-text-fill: #999; -fx-font-size: 11px;");
+
+		side.getChildren().addAll(logoArea, new Separator(), btnHome, btnUsuario, btnAdmin, btnHelp, spacer, copy);
+		return side;
+	}
+
+	// Nueva vista de Ayuda (se muestra en la misma ventana usando el shell)
+	private void showHelpView() {
+		VBox help = new VBox(12);
+		help.setPadding(new Insets(20));
+		help.setAlignment(Pos.TOP_LEFT);
+
+		Label hTitle = new Label("Ayuda / Información");
+		hTitle.setStyle("-fx-font-size:20px; -fx-font-weight:700;");
+		Label hSub = new Label("Portal Seguridad Cali - Versión 1.0");
+		hSub.setStyle("-fx-text-fill:#666;");
+
+		// Desarrolladores (ejemplo)
+		VBox devs = new VBox(6);
+		devs.getChildren().add(new Label("Desarrolladores:"));
+		devs.getChildren().add(new Label(" - Daniel Campo  : 312 7589036"));
+		devs.getChildren().add(new Label(" - Sebastian Adabia: 312 2693918"));
+		devs.getChildren().add(new Label(" - Juan Sebastian  : 322 5973565"));
+
+		// Información adicional/comp contact
+		VBox info = new VBox(6);
+		info.getChildren().add(new Label("Contacto del proyecto: proyecto@ejemplo.com"));
+		info.getChildren().add(new Label("Licencia: MIT (ejemplo)"));
+		info.getChildren().add(new Label("Notas: Esta es una versión de prueba - reporte bugs al equipo."));
+
+		Separator sep = new Separator();
+
+		// Botón para volver al menú principal (misma ventana)
+		HBox actions = new HBox(8);
+		Button btnVolver = new Button("Volver al menú");
+		btnVolver.setStyle("-fx-background-color:#2b7cff; -fx-text-fill:white;");
+		btnVolver.setOnAction(e -> primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H)));
+		actions.getChildren().add(btnVolver);
+
+		help.getChildren().addAll(hTitle, hSub, sep, devs, new Separator(), info, actions);
+
+		Parent shell = createAppShell(help, "Ayuda");
+		primaryStage.setScene(new Scene(shell, PROFILE_W, PROFILE_H));
+		primaryStage.centerOnScreen();
+	}
+	// --- END: NEW: app shell helpers ---
+
+	// ----------------------------------------------------------------
+	// Nota: se eliminó aquí la copia duplicada de executeQueryAndShowInTable
+	// La implementación única y definitiva se mantiene más abajo en el archivo
+	// (busca "Ejecuta la consulta SQL y si es SELECT construye una TableView")
+	// ----------------------------------------------------------------
+
+	// Ejecuta la consulta SQL y si es SELECT construye una TableView dinámicamente y la coloca en resultsPane.
+	private void executeQueryAndShowInTable(String sql, BorderPane resultsPane, TextArea fallbackArea) {
+		// listas finales mutables que llenaremos en el hilo de fondo
+		final java.util.List<String> columnNames = new java.util.ArrayList<>();
+		final java.util.List<java.util.List<String>> rows = new java.util.ArrayList<>();
+
+		Task<Void> task = new Task<>() {
 			@Override
-			protected String call() {
+			protected Void call() {
+				if (sql == null) {
+					Platform.runLater(() -> {
+						resultsPane.setCenter(fallbackArea);
+						fallbackArea.setText("Consulta vacía");
+					});
+					return null;
+				}
 				try {
 					if (conexion == null || conexion.isClosed()) {
 						conexion = conexionBD.getConnection();
 						consultasDB = new ConsultasDB(conexion);
 					}
-					return consultasDB.ejecutarConsultaFormateada(sql);
+
+					String trimmed = sql.trim().toUpperCase();
+					// Si no es SELECT, usar el formateador textual
+					if (!trimmed.startsWith("SELECT")) {
+						String res = consultasDB.ejecutarConsultaFormateada(sql);
+						Platform.runLater(() -> {
+							resultsPane.setCenter(fallbackArea);
+							fallbackArea.setText(res);
+						});
+						return null;
+					}
+
+					// Ejecutar SELECT y llenar columnNames y rows
+					try (java.sql.Statement st = conexion.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
+						 java.sql.ResultSet rs = st.executeQuery(sql)) {
+
+						java.sql.ResultSetMetaData md = rs.getMetaData();
+						int cols = md.getColumnCount();
+						for (int i = 1; i <= cols; i++) {
+							String label = md.getColumnLabel(i);
+							columnNames.add(label != null ? label : ("col" + i));
+						}
+
+						while (rs.next()) {
+							java.util.List<String> row = new java.util.ArrayList<>(columnNames.size());
+							for (int i = 1; i <= columnNames.size(); i++) {
+								String v = rs.getString(i);
+								row.add(v != null ? v : "");
+							}
+							rows.add(row);
+						}
+					}
+					// Construir TableView en UI thread
+					Platform.runLater(() -> {
+						TableView<ObservableList<String>> table = new TableView<>();
+						table.getColumns().clear();
+						for (int i = 0; i < columnNames.size(); i++) {
+							final int colIndex = i;
+							TableColumn<ObservableList<String>, String> col = new TableColumn<>(columnNames.get(i));
+							col.setCellValueFactory(cellData -> {
+								ObservableList<String> row = cellData.getValue();
+								if (colIndex < row.size()) return new ReadOnlyStringWrapper(row.get(colIndex));
+								return new ReadOnlyStringWrapper("");
+							});
+							col.setStyle("-fx-alignment: CENTER-LEFT;");
+							table.getColumns().add(col);
+						}
+
+						ObservableList<ObservableList<String>> tableData = FXCollections.observableArrayList();
+						for (java.util.List<String> r : rows) {
+							tableData.add(FXCollections.observableArrayList(r));
+						}
+						table.setItems(tableData);
+						table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+						table.setPlaceholder(new Label("No hay datos"));
+
+						StackPane wrapper = new StackPane(table);
+						wrapper.setPadding(new Insets(6, 8, 6, 8));
+						resultsPane.setCenter(wrapper);
+					});
 				} catch (Exception ex) {
 					ex.printStackTrace();
-					return "Error ejecutando consulta: " + ex.getMessage();
+					Platform.runLater(() -> {
+						resultsPane.setCenter(fallbackArea);
+						fallbackArea.setText("Error ejecutando consulta: " + ex.getMessage());
+					});
 				}
+				return null;
 			}
 		};
-		task.setOnSucceeded(ev -> target.setText(task.getValue()));
-		task.setOnFailed(ev -> target.setText("Error: " + task.getException().getMessage()));
-		new Thread(task).start();
-	}
-
-	public static void main(String[] args) {
-		launch(args);
+		Thread t = new Thread(task);
+		t.setDaemon(true);
+		t.start();
 	}
 
 	// ------------------- Helpers CRUD y metadata -------------------
@@ -964,15 +1136,50 @@ public class FXLauncher extends Application {
 		try (java.sql.PreparedStatement ps = conexion.prepareStatement(sql)) {
 			ps.setString(1, pkVal);
 			ps.executeUpdate();
-		}
+				}
 	}
 
-	// Nuevo helper que devuelve el nombre real de la tabla
+	// Nuevo helper que devuelve el nombre real de la tabla (implementado)
 	private String resolveTableName(String displayName) {
 		if (displayName == null) return null;
 		String t = tableNameMap.get(displayName);
 		if (t != null && !t.trim().isEmpty()) return t;
 		// fallback: devolver displayName sin espacios y sin caracteres extra
-		return displayName.replaceAll("\\s+", "");
+		return displayName.replaceAll("[^A-Za-z0-9_]", "").replaceAll("\\s+", "");
 	}
-}
+
+	// Encapsula cualquier contenido en el shell: topbar + sidebar + center content
+	private Parent createAppShell(Node centerContent, String pageTitle) {
+		BorderPane shell = new BorderPane();
+
+		// Topbar
+		HBox top = createTopBar(pageTitle);
+		shell.setTop(top);
+
+		// Sidebar
+		VBox side = createSidebar();
+		shell.setLeft(side);
+
+		// Center: colocar contenido dentro de un pane con padding y fondo claro
+		StackPane centerWrapper = new StackPane();
+		centerWrapper.setPadding(new Insets(18));
+		centerWrapper.setStyle("-fx-background-color: #eef5fb;"); // fondo suave para el área principal
+
+		if (centerContent != null) {
+			// si el contenido es un Node, lo envolvemos en un panel para que no estire
+			StackPane contentPane = new StackPane(centerContent);
+			contentPane.setStyle("-fx-background-color: transparent;");
+			contentPane.setMaxWidth(Double.MAX_VALUE);
+			contentPane.setMaxHeight(Double.MAX_VALUE);
+			centerWrapper.getChildren().add(contentPane);
+		}
+
+		shell.setCenter(centerWrapper);
+
+		// estilo global del shell
+		shell.setStyle("-fx-font-family: 'Segoe UI', sans-serif;");
+
+		return shell;
+	}
+
+} // fin de clase FXLauncher

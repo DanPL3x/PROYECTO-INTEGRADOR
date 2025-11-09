@@ -225,7 +225,7 @@ public class ControladorProyecto {
                             JOptionPane.showMessageDialog(null, "Los campos ID/Comuna/Zona/Nivel deben ser numéricos", "",
                                     JOptionPane.ERROR_MESSAGE);
                         } else {
-                            ubicacion.CrearUbicacion(Integer.parseInt(CrearIdUbi), CrearNombreUbi,
+                            ubicacion.EditarUbicacion(Integer.parseInt(CrearIdUbi), CrearNombreUbi,
                                     Integer.parseInt(CrearComuna), Integer.parseInt(CrearIdZonaUbi),
                                     Integer.parseInt(CrearIdNivelUbi));
 

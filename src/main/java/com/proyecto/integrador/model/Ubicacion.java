@@ -82,19 +82,14 @@ public class Ubicacion {
         this.id_zona = parIdZona;
         this.id_punto_cardinal = parIdPuntoCard;
 
-        try (PreparedStatement stmt = this.conexion.prepareStatement("UPDATE ubicacion " + //
-                "SET direccion = ?, " + //
-                "id_nivel = ?, " + //
-                "id_zona = ?, " + //
-                "id_punto_cardinal = ? " + //
-                "WHERE id_ubicacion = ?")) {
+        try (PreparedStatement stmt = this.conexion.prepareStatement(
+                "UPDATE Ubicacion SET direccion = ?, id_nivel = ?, id_zona = ?, id_punto_cardinal = ? WHERE id_ubicacion = ?")) {
 
             stmt.setString(1, this.direccion);
             stmt.setInt(2, this.id_nivel);
             stmt.setInt(3, this.id_zona);
             stmt.setInt(4, this.id_punto_cardinal);
             stmt.setInt(5, this.id_ubicacion);
-            //System.out.println(stmt);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -104,7 +99,7 @@ public class Ubicacion {
     public void EliminarUbicacion(int parIdUbi) {
         this.id_ubicacion = parIdUbi;
 
-        try (PreparedStatement stmt = this.conexion.prepareStatement("Delete from ubicacion where id_ubicacion = ?")) {
+        try (PreparedStatement stmt = this.conexion.prepareStatement("DELETE FROM Ubicacion WHERE id_ubicacion = ?")) {
             stmt.setInt(1, this.id_ubicacion);
             stmt.executeUpdate();
         } catch (SQLException e) {
@@ -116,15 +111,5 @@ public class Ubicacion {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'informarPuntosCardinales'");
     }
-    public String informarUbicacionAdmin() {
-
-        return null;
-    }
-
-    public void CrearUbicacion(int int1, String crearNombreUbi, int int2, int int3, int int4) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'CrearUbicacion'");
-    }
-
 }
 
