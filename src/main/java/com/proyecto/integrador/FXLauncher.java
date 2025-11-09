@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -54,6 +55,9 @@ public class FXLauncher extends Application {
 	// NUEVO: map displayName -> real DB table name
 	private Map<String,String> tableNameMap = new HashMap<>();
 
+	// NUEVO: imagen del logo de la aplicación
+	private Image appLogo;
+
 	private static final int WINDOW_W = 900;
 	private static final int WINDOW_H = 700;
 
@@ -61,6 +65,19 @@ public class FXLauncher extends Application {
 	public void start(Stage primaryStage) {
 		this.primaryStage = primaryStage;
 		primaryStage.setTitle("Portal Seguridad Cali");
+
+		// Cargar logo desde resources/images/logo.png (coloca el fichero allí)
+		try (InputStream lis = getClass().getResourceAsStream("/images/logo.png")) {
+			if (lis != null) {
+				appLogo = new Image(lis);
+				// usar el icono en la ventana principal (barra del SO)
+				primaryStage.getIcons().add(appLogo);
+			} else {
+				System.out.println("Logo no encontrado en /images/logo.png — se usará fallback.");
+			}
+		} catch (Exception ex) {
+			System.out.println("Error cargando logo: " + ex.getMessage());
+		}
 
 		// Inicializar conexión
 		conexionBD = new Conexion();
@@ -135,33 +152,56 @@ public class FXLauncher extends Application {
 		card.setAlignment(Pos.TOP_CENTER);
 		card.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 20, 0, 0, 6);");
 
+		// Reemplazar o añadir cabecera para incluir logo junto al título
+		// -- start header change --
+		HBox header = new HBox(12);
+		header.setAlignment(Pos.CENTER_LEFT);
+		if (appLogo != null) {
+			ImageView logoView = new ImageView(appLogo);
+			logoView.setFitWidth(56);
+			logoView.setFitHeight(56);
+			header.getChildren().add(logoView);
+		}
+		VBox titles = new VBox(2);
 		Label title = new Label("Portal Seguridad Cali");
 		title.setFont(Font.font(24));
 		title.setStyle("-fx-font-weight: 700; -fx-text-fill: #222;");
 		Label subtitle = new Label("Selecciona tu portal de acceso");
 		subtitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #666;");
+		titles.getChildren().addAll(title, subtitle);
+		header.getChildren().add(titles);
+		// insertar el header dentro de la card (sustituye el title/subtitle simples)
+		// ...existing code that builds 'card'...
+		// en lugar de: card.getChildren().addAll(title, subtitle, tiles, footerCard);
+		// usar:
+		card.getChildren().clear();
+		
+		// Tiles y footer (nombres locales no confunden con campos de clase)
+		HBox tilesBox = new HBox(24);
+		tilesBox.setAlignment(Pos.CENTER);
 
-		HBox tiles = new HBox(24);
-		tiles.setAlignment(Pos.CENTER);
-
+		// crea tiles (intenta cargar imágenes desde resources/images; si no existen usa emoji de respaldo)
 		VBox tileUser = makeTile("Usuario", "#4da6ff", "/images/user_icon_new.png", "👤");
 		VBox tileAdmin = makeTile("Administrador", "#42b983", "/images/admin_icon.png", "👨‍💼");
-
-		// tooltips
 		Tooltip.install(tileUser, new Tooltip("Entrar al portal de consultas ciudadanas"));
 		Tooltip.install(tileAdmin, new Tooltip("Acceder al panel administrativo"));
-
 		tileUser.setOnMouseClicked(e -> showUserWindow());
 		tileAdmin.setOnMouseClicked(e -> primaryStage.setScene(buildAdminLoginScene()));
+		tilesBox.getChildren().addAll(tileUser, tileAdmin);
 
-		tiles.getChildren().addAll(tileUser, tileAdmin);
+		Label footerLabel = new Label("Desarrollado por estudiantes de 4to semestre - Proyecto Integrador");
+		footerLabel.setStyle("-fx-text-fill: #999; -fx-font-size: 12px;");
 
-		Label footerCard = new Label("Desarrollado por estudiantes de 4to semestre - Proyecto Integrador");
-		footerCard.setStyle("-fx-text-fill: #999; -fx-font-size: 12px;");
+		// Poblar el card de forma segura (añadir sólo nodes no nulos)
+		card.getChildren().clear();
+		if (header != null) card.getChildren().add(header);
+		if (tilesBox != null) card.getChildren().add(tilesBox);
+		if (footerLabel != null) card.getChildren().add(footerLabel);
 
-		card.getChildren().addAll(title, subtitle, tiles, footerCard);
+		// Asegurar que el card esté dentro del cardHolder
+		cardHolder.getChildren().clear();
 		cardHolder.getChildren().add(card);
-		StackPane.setAlignment(card, Pos.CENTER);
+		// -- end header change --
 
 		// Status bar
 		HBox statusBar = new HBox();
@@ -304,20 +344,22 @@ public class FXLauncher extends Application {
 		BorderPane root = new BorderPane();
 		root.setPadding(new Insets(12));
 
-		// Cabecera con icono + título + cerrar sesión + badge
+		// Cabecera: añadir logo a la izquierda si existe
 		HBox header = new HBox(12);
 		header.setPadding(new Insets(8));
 		header.setAlignment(Pos.CENTER_LEFT);
 
-		ImageView adminIconView = null;
-		try (InputStream is = getClass().getResourceAsStream("/images/admin_icon.png")) {
-			if (is != null) {
-				Image adminImg = new Image(is, 64, 64, true, true);
-				adminIconView = new ImageView(adminImg);
-			}
-		} catch (Exception ex) {
-			// ignorar, usará emoji en su lugar
+		if (appLogo != null) {
+			ImageView adminLogo = new ImageView(appLogo);
+			adminLogo.setFitWidth(48);
+			adminLogo.setFitHeight(48);
+			header.getChildren().add(adminLogo);
+		} else {
+			Label emoji = new Label("👨‍💼");
+			emoji.setStyle("-fx-font-size:36px;");
+			header.getChildren().add(emoji);
 		}
+
 		Label title = new Label("Panel Administrativo");
 		title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
 		Label subtitle = new Label("Gestión de datos y consultas");
@@ -343,12 +385,6 @@ public class FXLauncher extends Application {
 		btnLogout.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
 		btnLogout.setOnAction(e -> primaryStage.setScene(new Scene(buildMainMenu(), WINDOW_W, WINDOW_H)));
 
-		if (adminIconView != null) header.getChildren().add(adminIconView);
-		else {
-			Label emoji = new Label("👨‍💼");
-			emoji.setStyle("-fx-font-size:36px;");
-			header.getChildren().add(emoji);
-		}
 		header.getChildren().addAll(titleBox, spacer, notifBadge, btnLogout);
 
 		root.setTop(header);
@@ -633,6 +669,11 @@ public class FXLauncher extends Application {
 		root.setPadding(new Insets(12));
 		// Fuente general más legible para este entorno
 		root.setStyle("-fx-font-family: 'Segoe UI', 'Helvetica Neue', Arial; -fx-font-size: 13px;");
+
+		// establecer icono del Stage usuario (si cargado)
+		if (appLogo != null) {
+			userStage.getIcons().add(appLogo);
+		}
 
 		// LEFT: botones de consultas con estilo más cómodo
 		VBox left = new VBox(10);

@@ -1,7 +1,6 @@
 package com.proyecto.integrador;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
 
 public class Bootstrap {
 	// Entry point independiente sin referencias directas a javafx.* para evitar
