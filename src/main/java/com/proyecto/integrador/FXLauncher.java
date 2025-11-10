@@ -127,96 +127,246 @@ public class FXLauncher extends Application {
 		}
 
 		primaryStage.setScene(mainScene);
+		primaryStage.setMaximized(true); // Maximizar la ventana
+		primaryStage.setFullScreenExitHint(""); // Ocultar mensaje "Presiona ESC para salir"
+		primaryStage.setFullScreen(true); // Modo pantalla completa
 		primaryStage.show();
 	}
 
-	// Menú principal programático (mockup card centrado) - ahora con MenuBar y status bar
+	// Menú principal programático - Dashboard completo
 	private Parent buildMainMenu() {
-		// Contenido central: título + subtítulo + tiles grandes centradas
-		VBox center = new VBox(18);
-		center.setPadding(new Insets(32));
-		center.setAlignment(Pos.TOP_LEFT);
+		BorderPane mainLayout = new BorderPane();
+		mainLayout.setStyle("-fx-background-color: #f5f7fa;");
 
-		// Header (logo + title)
-		HBox header = new HBox(12);
-		header.setAlignment(Pos.CENTER_LEFT);
+		// ===== SECCIÓN SUPERIOR: Header con bienvenida =====
+		VBox headerSection = new VBox(8);
+		headerSection.setPadding(new Insets(24, 32, 16, 32));
+		headerSection.setStyle("-fx-background-color: linear-gradient(to right, #2f98e6, #1f7ac4);");
+		
+		HBox headerTop = new HBox(12);
+		headerTop.setAlignment(Pos.CENTER_LEFT);
 		if (appLogo != null) {
 			ImageView logoView = new ImageView(appLogo);
-			logoView.setFitWidth(64);
-			logoView.setFitHeight(64);
-			header.getChildren().add(logoView);
+			logoView.setFitWidth(56);
+			logoView.setFitHeight(56);
+			headerTop.getChildren().add(logoView);
 		}
-		VBox titles = new VBox(2);
-		Label title = new Label("Portal Seguridad Cali");
-		title.setStyle("-fx-font-size:28px; -fx-font-weight:700; -fx-text-fill:#222;");
-		Label subtitle = new Label("Selecciona tu portal de acceso");
-		subtitle.setStyle("-fx-font-size:14px; -fx-text-fill:#666;");
-		titles.getChildren().addAll(title, subtitle);
-		header.getChildren().add(titles);
+		VBox headerTitles = new VBox(4);
+		Label welcomeLabel = new Label("Portal Seguridad Cali");
+		welcomeLabel.setStyle("-fx-font-size:32px; -fx-font-weight:700; -fx-text-fill:white;");
+		Label dateLabel = new Label("Sistema de Gestión de Seguridad Ciudadana");
+		dateLabel.setStyle("-fx-font-size:15px; -fx-text-fill:#e8f4fd;");
+		headerTitles.getChildren().addAll(welcomeLabel, dateLabel);
+		headerTop.getChildren().add(headerTitles);
+		
+		headerSection.getChildren().add(headerTop);
+		mainLayout.setTop(headerSection);
 
-		// Tiles container: centra y adapta a ancho (2 columnas en desktop)
-		FlowPane tiles = new FlowPane();
-		tiles.setHgap(28);
-		tiles.setVgap(20);
-		tiles.setPadding(new Insets(24, 0, 0, 0));
-		tiles.setPrefWrapLength(PROFILE_W - 300); // ayuda al wrapping
-		tiles.setAlignment(Pos.CENTER_LEFT);
-
-		// Helper local para crear las tarjetas grandes estilo web
-		java.util.function.BiFunction<String,String, StackPane> makeCard = (labelText, iconPath) -> {
-			StackPane card = new StackPane();
-			card.setPrefSize(420, 200);
-			card.setMaxSize(420, 200);
-			card.setStyle("-fx-background-color: white; -fx-border-color: #e9e9e9; -fx-border-radius:10; -fx-background-radius:10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 12, 0, 0, 6);");
-			VBox content = new VBox(10);
-			content.setAlignment(Pos.CENTER);
-			// intentar cargar icono; si no, emoji fallback
-			ImageView iv = null;
-			try (InputStream is = getClass().getResourceAsStream(iconPath)) {
-				if (is != null) {
-					Image img = new Image(is, 96, 96, true, true);
-					iv = new ImageView(img);
-				}
-			} catch (Exception ex) { /* ignora */ }
-			if (iv != null) content.getChildren().add(iv);
-			else {
-				Label emoji = new Label("👤");
-				emoji.setStyle("-fx-font-size:64px;");
-				content.getChildren().add(emoji);
+		// ===== SECCIÓN CENTRAL: Dashboard con estadísticas y accesos =====
+		VBox centerContent = new VBox(24);
+		centerContent.setPadding(new Insets(32, 32, 24, 32));
+		
+		// Tarjetas de estadísticas rápidas
+		HBox statsCards = new HBox(20);
+		statsCards.setAlignment(Pos.CENTER);
+		
+		// Tarjeta 1: Denuncias Totales
+		VBox stat1 = createStatCard("📊", "Denuncias Totales", getQuickStat("denuncia"), "#4CAF50");
+		// Tarjeta 2: Zonas Registradas
+		VBox stat2 = createStatCard("📍", "Zonas Registradas", getQuickStat("zona"), "#2196F3");
+		// Tarjeta 3: Lugares de Denuncia
+		VBox stat3 = createStatCard("🏢", "Puntos de Atención", getQuickStat("lugardenuncias"), "#FF9800");
+		// Tarjeta 4: Ubicaciones
+		VBox stat4 = createStatCard("🗺️", "Ubicaciones", getQuickStat("ubicacion"), "#9C27B0");
+		
+		statsCards.getChildren().addAll(stat1, stat2, stat3, stat4);
+		
+		// Sección de acceso rápido
+		Label accessTitle = new Label("Selecciona tu perfil de acceso");
+		accessTitle.setStyle("-fx-font-size:20px; -fx-font-weight:600; -fx-text-fill:#2c3e50;");
+		
+		// Tarjetas de acceso (Usuario y Administrador)
+		HBox accessCards = new HBox(24);
+		accessCards.setAlignment(Pos.CENTER);
+		
+		// Tarjeta Usuario
+		VBox userCard = createAccessCard(
+			"/images/user_icon_new.png", 
+			"Usuario", 
+			"Consulta información sobre seguridad en Cali",
+			"#3498db",
+			e -> showUserWindow()
+		);
+		
+		// Tarjeta Administrador
+		VBox adminCard = createAccessCard(
+			"/images/admin_icon.png", 
+			"Administrador", 
+			"Gestiona denuncias, ubicaciones y lugares",
+			"#e74c3c",
+			e -> {
+				primaryStage.setScene(buildAdminLoginScene());
+				primaryStage.setFullScreen(true);
 			}
-			Label lbl = new Label(labelText);
-			lbl.setStyle("-fx-font-size:18px; -fx-font-weight:700; -fx-text-fill:#222;");
-			content.getChildren().add(lbl);
-			card.getChildren().add(content);
+		);
+		
+		// Tarjeta Reportar Incidente (formulario público)
+		VBox reportCard = createAccessCard(
+			"/images/reportes.png", 
+			"Reportar Incidente", 
+			"Ciudadanos pueden reportar incidentes de seguridad",
+			"#f39c12",
+			e -> mostrarFormularioPublico()
+		);
+		
+		accessCards.getChildren().addAll(userCard, adminCard, reportCard);
+		
+		// Sección de información rápida
+		HBox infoSection = new HBox(20);
+		infoSection.setAlignment(Pos.CENTER);
+		
+		VBox infoCard1 = createInfoCard("⚠️", "Emergencias", "Línea 123");
+		VBox infoCard2 = createInfoCard("🚓", "Policía", "Línea 112");
+		VBox infoCard3 = createInfoCard("📞", "CAI", "Línea 018000 910 600");
+		
+		infoSection.getChildren().addAll(infoCard1, infoCard2, infoCard3);
+		
+		centerContent.getChildren().addAll(statsCards, new Separator(), accessTitle, accessCards, new Separator(), infoSection);
+		
+		// Scroll para contenido si es necesario
+		ScrollPane scrollPane = new ScrollPane(centerContent);
+		scrollPane.setFitToWidth(true);
+		scrollPane.setStyle("-fx-background: #f5f7fa; -fx-background-color: #f5f7fa;");
+		mainLayout.setCenter(scrollPane);
 
-			// hover
-			card.setOnMouseEntered(e -> card.setStyle("-fx-background-color: white; -fx-border-color: #e1e7f3; -fx-border-radius:10; -fx-background-radius:10; -fx-effect: dropshadow(gaussian, rgba(31,97,204,0.12), 18, 0, 0, 8);"));
-			card.setOnMouseExited(e -> card.setStyle("-fx-background-color: white; -fx-border-color: #e9e9e9; -fx-border-radius:10; -fx-background-radius:10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 12, 0, 0, 6);"));
-			return card;
-		};
-
-		StackPane cardUser = makeCard.apply("Usuario", "/images/user_icon_new.png");
-		StackPane cardAdmin = makeCard.apply("Administrador", "/images/admin_icon.png");
-
-		// click handlers
-		cardUser.setOnMouseClicked(e -> showUserWindow());
-		cardAdmin.setOnMouseClicked(e -> primaryStage.setScene(buildAdminLoginScene()));
-
-		tiles.getChildren().addAll(cardUser, cardAdmin);
-
-		// Añadir header y tiles al centro
-		center.getChildren().addAll(header, tiles);
-
-		// Pie de página pequeño
-		Label footerLabel = new Label("Desarrollado por estudiantes de 4to semestre - Proyecto Integrador");
-		footerLabel.setStyle("-fx-text-fill: #999; -fx-font-size: 12px;");
-		VBox wrapper = new VBox(12, center, footerLabel);
-		wrapper.setPadding(new Insets(12));
-		wrapper.setAlignment(Pos.TOP_LEFT);
+		// ===== PIE DE PÁGINA =====
+		HBox footer = new HBox();
+		footer.setPadding(new Insets(16, 32, 16, 32));
+		footer.setAlignment(Pos.CENTER);
+		footer.setStyle("-fx-background-color: white; -fx-border-color: #e0e0e0; -fx-border-width: 1 0 0 0;");
+		Label footerLabel = new Label("© 2025 Portal Seguridad Cali - Desarrollado por estudiantes de 4to semestre - Proyecto Integrador");
+		footerLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 12px;");
+		footer.getChildren().add(footerLabel);
+		mainLayout.setBottom(footer);
 
 		// Envolver en el shell para aspecto web (topbar + sidebar)
-		Parent shell = createAppShell(wrapper, null); // la createAppShell pone el topbar/side
+		Parent shell = createAppShell(mainLayout, null);
 		return shell;
+	}
+	
+	// Crear tarjeta de estadística
+	private VBox createStatCard(String icon, String label, String value, String accentColor) {
+		VBox card = new VBox(8);
+		card.setAlignment(Pos.CENTER);
+		card.setPadding(new Insets(20));
+		card.setPrefWidth(250);
+		card.setStyle("-fx-background-color: white; -fx-background-radius: 12; " +
+				"-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 4);");
+		
+		Label iconLabel = new Label(icon);
+		iconLabel.setStyle("-fx-font-size: 36px;");
+		
+		Label valueLabel = new Label(value);
+		valueLabel.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: " + accentColor + ";");
+		
+		Label nameLabel = new Label(label);
+		nameLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #7f8c8d;");
+		
+		card.getChildren().addAll(iconLabel, valueLabel, nameLabel);
+		return card;
+	}
+	
+	// Crear tarjeta de acceso (Usuario/Administrador)
+	private VBox createAccessCard(String iconPath, String title, String description, String color, javafx.event.EventHandler<MouseEvent> action) {
+		VBox card = new VBox(12);
+		card.setAlignment(Pos.CENTER);
+		card.setPadding(new Insets(32, 24, 32, 24));
+		card.setPrefWidth(380);
+		card.setPrefHeight(220);
+		card.setStyle("-fx-background-color: white; -fx-background-radius: 12; " +
+				"-fx-border-color: #e0e0e0; -fx-border-width: 2; -fx-border-radius: 12; " +
+				"-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 8, 0, 0, 4); -fx-cursor: hand;");
+		
+		// Cargar imagen o usar emoji fallback
+		Node iconNode;
+		try (InputStream is = getClass().getResourceAsStream(iconPath)) {
+			if (is != null) {
+				Image img = new Image(is, 96, 96, true, true);
+				ImageView iv = new ImageView(img);
+				iconNode = iv;
+			} else {
+				Label fallback = new Label("👤");
+				fallback.setStyle("-fx-font-size: 64px;");
+				iconNode = fallback;
+			}
+		} catch (Exception ex) {
+			Label fallback = new Label("👤");
+			fallback.setStyle("-fx-font-size: 64px;");
+			iconNode = fallback;
+		}
+		
+		Label titleLabel = new Label(title);
+		titleLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
+		
+		Label descLabel = new Label(description);
+		descLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #7f8c8d; -fx-text-alignment: center;");
+		descLabel.setWrapText(true);
+		descLabel.setMaxWidth(340);
+		
+		card.getChildren().addAll(iconNode, titleLabel, descLabel);
+		
+		// Efectos hover
+		card.setOnMouseEntered(e -> {
+			card.setStyle("-fx-background-color: white; -fx-background-radius: 12; " +
+					"-fx-border-color: " + color + "; -fx-border-width: 2; -fx-border-radius: 12; " +
+					"-fx-effect: dropshadow(gaussian, " + color.replace("#", "rgba(").replace("", ", 0.3)") + ", 15, 0, 0, 6); -fx-cursor: hand;");
+		});
+		card.setOnMouseExited(e -> {
+			card.setStyle("-fx-background-color: white; -fx-background-radius: 12; " +
+					"-fx-border-color: #e0e0e0; -fx-border-width: 2; -fx-border-radius: 12; " +
+					"-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 8, 0, 0, 4); -fx-cursor: hand;");
+		});
+		card.setOnMouseClicked(action);
+		
+		return card;
+	}
+	
+	// Crear tarjeta de información
+	private VBox createInfoCard(String icon, String title, String info) {
+		VBox card = new VBox(8);
+		card.setAlignment(Pos.CENTER);
+		card.setPadding(new Insets(20, 24, 20, 24));
+		card.setPrefWidth(300);
+		card.setStyle("-fx-background-color: #ecf0f1; -fx-background-radius: 10;");
+		
+		Label iconLabel = new Label(icon);
+		iconLabel.setStyle("-fx-font-size: 32px;");
+		
+		Label titleLabel = new Label(title);
+		titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+		
+		Label infoLabel = new Label(info);
+		infoLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #34495e;");
+		
+		card.getChildren().addAll(iconLabel, titleLabel, infoLabel);
+		return card;
+	}
+	
+	// Obtener estadística rápida de la base de datos
+	private String getQuickStat(String tableName) {
+		try {
+			String query = "SELECT COUNT(*) as total FROM " + tableName;
+			java.sql.Statement stmt = conexion.createStatement();
+			java.sql.ResultSet rs = stmt.executeQuery(query);
+			if (rs.next()) {
+				return String.valueOf(rs.getInt("total"));
+			}
+			rs.close();
+			stmt.close();
+		} catch (Exception e) {
+			return "N/A";
+		}
+		return "0";
 	}
 
 	// crea tile con imagen (resourcePath) o emojiFallback
@@ -266,18 +416,22 @@ public class FXLauncher extends Application {
 		form.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 12, 0, 0, 6);");
 
 		Label title = new Label("Administrador - Iniciar Sesión");
-		title.setStyle("-fx-font-size:20px; -fx-font-weight:700; -fx-text-fill: #222;");
+		title.setStyle("-fx-font-size:26px; -fx-font-weight:700; -fx-text-fill: #222;");
 		GridPane.setColumnSpan(title, 2);
 		form.add(title, 0, 0);
 
 		Label lblUser = new Label("Usuario:");
+		lblUser.setStyle("-fx-font-size:16px;");
 		TextField tfUser = new TextField();
 		tfUser.setPromptText("Usuario");
 		tfUser.setMaxWidth(Double.MAX_VALUE);
 		tfUser.setPrefWidth(360);
+		tfUser.setStyle("-fx-font-size:16px;");
 
 		Label lblPass = new Label("Contraseña:");
+		lblPass.setStyle("-fx-font-size:16px;");
 		PasswordField pf = new PasswordField();
+		pf.setStyle("-fx-font-size:16px;");
 		pf.setPromptText("Contraseña");
 		pf.setMaxWidth(Double.MAX_VALUE);
 		pf.setPrefWidth(360);
@@ -290,19 +444,22 @@ public class FXLauncher extends Application {
 		HBox buttons = new HBox(12);
 		buttons.setAlignment(Pos.CENTER_LEFT);
 		Button btnIngresar = new Button("Ingresar");
-		btnIngresar.setStyle("-fx-background-color:#42b983; -fx-text-fill:white; -fx-font-weight:600; -fx-pref-width:120; -fx-pref-height:36;");
+		btnIngresar.setStyle("-fx-background-color:#42b983; -fx-text-fill:white; -fx-font-weight:600; -fx-pref-width:140; -fx-pref-height:42; -fx-font-size:16px;");
 		Button btnVolver = new Button("Volver");
-		btnVolver.setStyle("-fx-background-color: transparent; -fx-border-color:#ddd; -fx-pref-width:90; -fx-pref-height:36;");
+		btnVolver.setStyle("-fx-background-color: transparent; -fx-border-color:#ddd; -fx-pref-width:110; -fx-pref-height:42; -fx-font-size:16px;");
 		buttons.getChildren().addAll(btnIngresar, btnVolver);
 		form.add(buttons, 1, 3);
 
 		Label lblInfo = new Label();
-		lblInfo.setStyle("-fx-text-fill: #d32f2f;");
+		lblInfo.setStyle("-fx-text-fill: #d32f2f; -fx-font-size:15px;");
 		GridPane.setColumnSpan(lblInfo, 2);
 		form.add(lblInfo, 0, 4);
 
 		// Acciones
-		btnVolver.setOnAction(ev -> primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H)));
+		btnVolver.setOnAction(ev -> {
+			primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H));
+			primaryStage.setFullScreen(true); // Mantener pantalla completa
+		});
 
 		btnIngresar.setOnAction(ev -> {
 			String usuario = tfUser.getText().trim();
@@ -335,9 +492,7 @@ public class FXLauncher extends Application {
 					pf.clear();
 					lblInfo.setText("");
 					primaryStage.setScene(adminScene);
-					primaryStage.setWidth(PROFILE_W);
-					primaryStage.setHeight(PROFILE_H);
-					primaryStage.centerOnScreen();
+					primaryStage.setFullScreen(true); // Mantener pantalla completa
 				} else {
 					lblInfo.setText("Credenciales incorrectas");
 				}
@@ -368,13 +523,13 @@ public class FXLauncher extends Application {
 			RadioButton rb = new RadioButton(t);
 			rb.setUserData(t);
 			rb.setToggleGroup(tg);
-			rb.setStyle("-fx-font-size: 13px;");
+			rb.setStyle("-fx-font-size: 16px;");
 			left.getChildren().add(rb);
 		}
 
 		Button btnEjecutar = new Button("Ejecutar consulta");
 		btnEjecutar.setMaxWidth(Double.MAX_VALUE);
-		btnEjecutar.setStyle("-fx-background-color:#2b7cff; -fx-text-fill:white;");
+		btnEjecutar.setStyle("-fx-background-color:#2b7cff; -fx-text-fill:white; -fx-font-size:16px; -fx-pref-height:40;");
 		left.getChildren().addAll(new Separator(), btnEjecutar);
 
 		// Center: resultados ahora con container para TableView o TextArea
@@ -382,7 +537,7 @@ public class FXLauncher extends Application {
 		TextArea txtResultadoArea = new TextArea();
 		txtResultadoArea.setEditable(false);
 		txtResultadoArea.setWrapText(false);
-		txtResultadoArea.setStyle("-fx-font-family: monospace; -fx-font-size: 12px;");
+		txtResultadoArea.setStyle("-fx-font-family: monospace; -fx-font-size: 15px;");
 		resultsPane.setCenter(txtResultadoArea);
 
 		// Right: formulario CRUD simplificado
@@ -390,7 +545,7 @@ public class FXLauncher extends Application {
 		right.setPadding(new Insets(8));
 		right.setPrefWidth(420);
 		Label crudTitle = new Label("CRUD - Formulario");
-		crudTitle.setStyle("-fx-font-weight:bold;");
+		crudTitle.setStyle("-fx-font-weight:bold; -fx-font-size:18px;");
 
 		ScrollPane formScroll = new ScrollPane();
 		formScroll.setFitToWidth(true);
@@ -405,7 +560,7 @@ public class FXLauncher extends Application {
 		Button btnDelete = new Button("Eliminar");
 		Button btnRefresh = new Button("Refrescar");
 		for (Button b : new Button[]{btnCreate, btnUpdate, btnDelete, btnRefresh}) {
-			b.setStyle("-fx-background-radius:6; -fx-pref-width:90; -fx-pref-height:34;");
+			b.setStyle("-fx-background-radius:6; -fx-pref-width:100; -fx-pref-height:40; -fx-font-size:15px;");
 		}
 		actions.getChildren().addAll(btnCreate, btnUpdate, btnDelete, btnRefresh);
 
@@ -687,7 +842,7 @@ public class FXLauncher extends Application {
 			// volver al menú principal en la misma ventana
 			Parent main = buildMainMenu();
 			primaryStage.setScene(new Scene(main, PROFILE_W, PROFILE_H));
-			primaryStage.centerOnScreen();
+			primaryStage.setFullScreen(true); // Mantener pantalla completa
 		});
 		bottom.getChildren().add(btnClose);
 
@@ -780,7 +935,7 @@ public class FXLauncher extends Application {
 		Parent shell = createAppShell(root, "Consultas Ciudadanas");
 		Scene scene = new Scene(shell, PROFILE_W, PROFILE_H);
 		primaryStage.setScene(scene);
-		primaryStage.centerOnScreen();
+		primaryStage.setFullScreen(true); // Mantener pantalla completa
 	}
 
 	// --- START: NEW: app shell helpers (sidebar + topbar) ---
@@ -792,11 +947,11 @@ public class FXLauncher extends Application {
 
 		// menu icon (simple)
 		Label menuIcon = new Label("\u2630"); // hamburger
-		menuIcon.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-padding: 0 12 0 12;");
+		menuIcon.setStyle("-fx-text-fill: white; -fx-font-size: 22px; -fx-padding: 0 12 0 12;");
 
 		// title
 		Label title = new Label(pageTitle != null ? pageTitle : "Portal Seguridad Cali");
-		title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: 600;");
+		title.setStyle("-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: 600;");
 
 		Region spacer = new Region();
 		HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -816,7 +971,7 @@ public class FXLauncher extends Application {
 			}
 		}
 		Label userLabel = new Label("admin");
-		userLabel.setStyle("-fx-text-fill: white; -fx-font-weight: 600;");
+		userLabel.setStyle("-fx-text-fill: white; -fx-font-weight: 600; -fx-font-size: 16px;");
 		if (avatar != null) userBox.getChildren().addAll(avatar, userLabel);
 		else userBox.getChildren().add(userLabel);
 
@@ -841,37 +996,44 @@ public class FXLauncher extends Application {
 			logoArea.getChildren().add(logo);
 		}
 		Label appName = new Label("Portal Seguridad");
-		appName.setStyle("-fx-font-weight:700; -fx-font-size: 14px;");
+		appName.setStyle("-fx-font-weight:700; -fx-font-size: 17px;");
 		logoArea.getChildren().add(appName);
 
 		// nav buttons
 		Button btnHome = new Button("Inicio");
 		Button btnUsuario = new Button("Consultas");
 		Button btnAdmin = new Button("Administración");
-		// Nuevo: botón Ayuda
+		Button btnEstadisticas = new Button("📊 Estadísticas");
 		Button btnHelp = new Button("Ayuda");
-		for (Button b : new Button[]{btnHome, btnUsuario, btnAdmin}) {
+		for (Button b : new Button[]{btnHome, btnUsuario, btnAdmin, btnEstadisticas}) {
 			b.setMaxWidth(Double.MAX_VALUE);
-			b.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT; -fx-padding:8 12;");
+			b.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT; -fx-padding:8 12; -fx-font-size: 16px;");
 		}
 		// estilo coherente para Ayuda
 		btnHelp.setMaxWidth(Double.MAX_VALUE);
-		btnHelp.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT; -fx-padding:8 12;");
+		btnHelp.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT; -fx-padding:8 12; -fx-font-size: 16px;");
 
 		// small handlers to show scenes (non-intrusive)
-		btnHome.setOnAction(e -> primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H)));
+		btnHome.setOnAction(e -> {
+			primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H));
+			primaryStage.setFullScreen(true); // Mantener pantalla completa
+		});
 		btnUsuario.setOnAction(e -> showUserWindow());
-		btnAdmin.setOnAction(e -> primaryStage.setScene(buildAdminLoginScene()));
+		btnAdmin.setOnAction(e -> {
+			primaryStage.setScene(buildAdminLoginScene());
+			primaryStage.setFullScreen(true); // Mantener pantalla completa
+		});
+		btnEstadisticas.setOnAction(e -> mostrarDashboardEstadisticas());
 		// handler para la vista de ayuda (misma ventana)
 		btnHelp.setOnAction(e -> showHelpView());
 
 		// footer small copyright
 		Region spacer = new Region();
 		VBox.setVgrow(spacer, Priority.ALWAYS);
-		Label copy = new Label("\u00A9 2024 Proyecto Integrador");
-		copy.setStyle("-fx-text-fill: #999; -fx-font-size: 11px;");
+		Label copy = new Label("\u00A9 2025 Proyecto Integrador");
+		copy.setStyle("-fx-text-fill: #999; -fx-font-size: 13px;");
 
-		side.getChildren().addAll(logoArea, new Separator(), btnHome, btnUsuario, btnAdmin, btnHelp, spacer, copy);
+		side.getChildren().addAll(logoArea, new Separator(), btnHome, btnUsuario, btnAdmin, btnEstadisticas, btnHelp, spacer, copy);
 		return side;
 	}
 
@@ -882,37 +1044,49 @@ public class FXLauncher extends Application {
 		help.setAlignment(Pos.TOP_LEFT);
 
 		Label hTitle = new Label("Ayuda / Información");
-		hTitle.setStyle("-fx-font-size:20px; -fx-font-weight:700;");
+		hTitle.setStyle("-fx-font-size:26px; -fx-font-weight:700;");
 		Label hSub = new Label("Portal Seguridad Cali - Versión 1.0");
-		hSub.setStyle("-fx-text-fill:#666;");
+		hSub.setStyle("-fx-text-fill:#666; -fx-font-size:17px;");
 
 		// Desarrolladores (ejemplo)
-		VBox devs = new VBox(6);
-		devs.getChildren().add(new Label("Desarrolladores:"));
-		devs.getChildren().add(new Label(" - Daniel Campo  : 312 7589036"));
-		devs.getChildren().add(new Label(" - Sebastian Adabia: 312 2693918"));
-		devs.getChildren().add(new Label(" - Juan Sebastian  : 322 5973565"));
+		VBox devs = new VBox(8);
+		Label devTitle = new Label("Desarrolladores:");
+		devTitle.setStyle("-fx-font-size:18px; -fx-font-weight:600;");
+		Label dev1 = new Label(" - Daniel Campo  : 312 7589036");
+		dev1.setStyle("-fx-font-size:16px;");
+		Label dev2 = new Label(" - Sebastian Adabia: 312 2693918");
+		dev2.setStyle("-fx-font-size:16px;");
+		Label dev3 = new Label(" - Juan Sebastian  : 322 5973565");
+		dev3.setStyle("-fx-font-size:16px;");
+		devs.getChildren().addAll(devTitle, dev1, dev2, dev3);
 
 		// Información adicional/comp contact
-		VBox info = new VBox(6);
-		info.getChildren().add(new Label("Contacto del proyecto: proyecto@ejemplo.com"));
-		info.getChildren().add(new Label("Licencia: MIT (ejemplo)"));
-		info.getChildren().add(new Label("Notas: Esta es una versión de prueba - reporte bugs al equipo."));
+		VBox info = new VBox(8);
+		Label contact = new Label("Contacto del proyecto: proyecto@ejemplo.com");
+		contact.setStyle("-fx-font-size:16px;");
+		Label license = new Label("Licencia: MIT (ejemplo)");
+		license.setStyle("-fx-font-size:16px;");
+		Label notes = new Label("Notas: Esta es una versión de prueba - reporte bugs al equipo.");
+		notes.setStyle("-fx-font-size:16px;");
+		info.getChildren().addAll(contact, license, notes);
 
 		Separator sep = new Separator();
 
 		// Botón para volver al menú principal (misma ventana)
 		HBox actions = new HBox(8);
 		Button btnVolver = new Button("Volver al menú");
-		btnVolver.setStyle("-fx-background-color:#2b7cff; -fx-text-fill:white;");
-		btnVolver.setOnAction(e -> primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H)));
+		btnVolver.setStyle("-fx-background-color:#2b7cff; -fx-text-fill:white; -fx-font-size:16px; -fx-pref-height:40; -fx-pref-width:150;");
+		btnVolver.setOnAction(e -> {
+			primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H));
+			primaryStage.setFullScreen(true); // Mantener pantalla completa
+		});
 		actions.getChildren().add(btnVolver);
 
 		help.getChildren().addAll(hTitle, hSub, sep, devs, new Separator(), info, actions);
 
 		Parent shell = createAppShell(help, "Ayuda");
 		primaryStage.setScene(new Scene(shell, PROFILE_W, PROFILE_H));
-		primaryStage.centerOnScreen();
+		primaryStage.setFullScreen(true); // Mantener pantalla completa
 	}
 	// --- END: NEW: app shell helpers ---
 
@@ -1180,6 +1354,40 @@ public class FXLauncher extends Application {
 		shell.setStyle("-fx-font-family: 'Segoe UI', sans-serif;");
 
 		return shell;
+	}
+	
+	/**
+	 * Muestra el formulario público para que ciudadanos reporten incidentes
+	 */
+	private void mostrarFormularioPublico() {
+		com.proyecto.integrador.view.FormularioPublicoDenuncia formulario = 
+			new com.proyecto.integrador.view.FormularioPublicoDenuncia(conexion, primaryStage);
+		
+		Scene formScene = formulario.crearEscena(() -> {
+			// Callback para volver al menú principal
+			primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H));
+			primaryStage.setFullScreen(true);
+		});
+		
+		primaryStage.setScene(formScene);
+		primaryStage.setFullScreen(true);
+	}
+	
+	/**
+	 * Muestra el dashboard de estadísticas con gráficas visuales
+	 */
+	private void mostrarDashboardEstadisticas() {
+		com.proyecto.integrador.view.DashboardEstadisticas dashboard = 
+			new com.proyecto.integrador.view.DashboardEstadisticas(conexion);
+		
+		Scene dashboardScene = dashboard.crearEscena(() -> {
+			// Callback para volver al menú principal
+			primaryStage.setScene(new Scene(buildMainMenu(), PROFILE_W, PROFILE_H));
+			primaryStage.setFullScreen(true);
+		});
+		
+		primaryStage.setScene(dashboardScene);
+		primaryStage.setFullScreen(true);
 	}
 
 } // fin de clase FXLauncher

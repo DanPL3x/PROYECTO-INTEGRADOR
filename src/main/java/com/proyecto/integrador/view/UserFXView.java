@@ -1,6 +1,7 @@
 package com.proyecto.integrador.view;
 
 import com.proyecto.integrador.model.ConsultasDB;
+import com.proyecto.integrador.model.RecommendationService;
 
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -18,24 +19,71 @@ public class UserFXView {
 
 	private final Stage stage;
 	private final ConsultasDB consultasDB;
+	private final RecommendationService recommendationService;
 
 	public UserFXView(Connection conexion) {
 		this.consultasDB = new ConsultasDB(conexion);
+		this.recommendationService = new RecommendationService(conexion);
 		this.stage = new Stage();
-		this.stage.setTitle("Consultas - Usuario (Cali)");
+		this.stage.setTitle("Portal Seguridad Cali - Consultas Ciudadanas");
 
 		VBox root = new VBox(12);
-		root.setPadding(new Insets(12));
+		root.setPadding(new Insets(16));
 		root.setAlignment(Pos.TOP_CENTER);
 
-		Label title = new Label("Consultas útiles - Ciudad de Cali");
-		title.setStyle("-fx-font-size:18px; -fx-font-weight:bold;");
+		Label title = new Label("🛡️ Portal Seguridad Cali - Consultas Ciudadanas");
+		title.setStyle("-fx-font-size:22px; -fx-font-weight:bold; -fx-text-fill:#2c3e50;");
+
+		// NUEVA SECCIÓN: Búsqueda de zona con recomendaciones
+		VBox searchSection = new VBox(8);
+		searchSection.setPadding(new Insets(12));
+		searchSection.setStyle("-fx-background-color: #e8f4f8; -fx-background-radius: 8;");
+		
+		Label searchTitle = new Label("🔍 Buscar información de seguridad por zona");
+		searchTitle.setStyle("-fx-font-size:16px; -fx-font-weight:600;");
+		
+		HBox searchBox = new HBox(10);
+		searchBox.setAlignment(Pos.CENTER);
+		TextField searchField = new TextField();
+		searchField.setPromptText("Escriba el nombre de la zona (ej: San Antonio, Aguablanca...)");
+		searchField.setPrefWidth(400);
+		searchField.setStyle("-fx-font-size:15px;");
+		
+		Button btnSearch = new Button("🔎 Buscar");
+		btnSearch.setStyle("-fx-background-color:#3498db; -fx-text-fill:white; -fx-font-size:15px; -fx-pref-width:120; -fx-pref-height:35;");
+		
+		Button btnListZones = new Button("📋 Ver todas las zonas");
+		btnListZones.setStyle("-fx-background-color:#9b59b6; -fx-text-fill:white; -fx-font-size:14px; -fx-pref-height:35;");
+		
+		searchBox.getChildren().addAll(searchField, btnSearch, btnListZones);
+		searchSection.getChildren().addAll(searchTitle, searchBox);
 
 		TextArea resultArea = new TextArea();
 		resultArea.setEditable(false);
 		resultArea.setWrapText(true);
-		resultArea.setPrefRowCount(18);
-		resultArea.setStyle("-fx-font-family: monospace;");
+		resultArea.setPrefRowCount(20);
+		resultArea.setStyle("-fx-font-family: monospace; -fx-font-size:14px;");
+
+		// Acción del botón buscar
+		btnSearch.setOnAction(e -> {
+			String zona = searchField.getText().trim();
+			if (!zona.isEmpty()) {
+				buscarZonaConRecomendaciones(zona, resultArea);
+			} else {
+				resultArea.setText("⚠️ Por favor ingrese el nombre de una zona para buscar.");
+			}
+		});
+		
+		// Acción del botón listar zonas
+		btnListZones.setOnAction(e -> {
+			runQueryAsync("SELECT nombre, comuna_vereda FROM Zona ORDER BY nombre", "Lista de Zonas", resultArea);
+		});
+		
+		// Permitir buscar con Enter
+		searchField.setOnAction(e -> btnSearch.fire());
+
+		Label consultasTitle = new Label("📊 Consultas Rápidas Predefinidas");
+		consultasTitle.setStyle("-fx-font-size:16px; -fx-font-weight:600; -fx-text-fill:#2c3e50;");
 
 		// Panel con botones (2 columnas)
 		GridPane grid = new GridPane();
@@ -75,15 +123,18 @@ public class UserFXView {
 		addQueryButton(grid, 1, 2, "Horarios con más denuncias",
 				"SELECT HOUR(hora) AS Hora, COUNT(*) AS Denuncias FROM Denuncia GROUP BY HOUR(hora) ORDER BY Denuncias DESC LIMIT 24", resultArea);
 
-		Button btnClose = new Button("Cerrar");
+		Button btnClose = new Button("❌ Cerrar");
 		btnClose.setOnAction(e -> stage.close());
-		btnClose.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
+		btnClose.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size:15px; -fx-pref-width:120; -fx-pref-height:40;");
 
-		root.getChildren().addAll(title, grid, new Separator(), resultArea, btnClose);
+		root.getChildren().addAll(title, new Separator(), searchSection, new Separator(), consultasTitle, grid, new Separator(), resultArea, btnClose);
 
 		Scene scene = new Scene(root, 900, 600);
 		stage.setScene(scene);
 		stage.initModality(Modality.NONE);
+		stage.setMaximized(true); // Maximizar ventana
+		stage.setFullScreenExitHint(""); // Ocultar mensaje "Presiona ESC para salir"
+		stage.setFullScreen(true); // Pantalla completa
 	}
 
 	private void addQueryButton(GridPane grid, int col, int row, String label, String sql, TextArea resultArea) {
@@ -109,6 +160,29 @@ public class UserFXView {
 		};
 		task.setOnSucceeded(ev -> resultArea.setText(task.getValue()));
 		task.setOnFailed(ev -> resultArea.setText("Error: " + task.getException().getMessage()));
+		new Thread(task).start();
+	}
+
+	/**
+	 * Busca información de una zona y muestra recomendaciones de seguridad
+	 */
+	private void buscarZonaConRecomendaciones(String nombreZona, TextArea resultArea) {
+		resultArea.setText("🔍 Buscando información de: " + nombreZona + "...\n");
+		
+		Task<String> task = new Task<>() {
+			@Override
+			protected String call() {
+				try {
+					return recommendationService.generarReporteCompleto(nombreZona);
+				} catch (Exception ex) {
+					ex.printStackTrace();
+					return "❌ Error al buscar zona: " + ex.getMessage();
+				}
+			}
+		};
+		
+		task.setOnSucceeded(ev -> resultArea.setText(task.getValue()));
+		task.setOnFailed(ev -> resultArea.setText("❌ Error: " + task.getException().getMessage()));
 		new Thread(task).start();
 	}
 
