@@ -1056,7 +1056,7 @@ public class FXLauncher extends Application {
 		dev1.setStyle("-fx-font-size:16px;");
 		Label dev2 = new Label(" - Sebastian Adabia: 312 2693918");
 		dev2.setStyle("-fx-font-size:16px;");
-		Label dev3 = new Label(" - Juan Sebastian  : 322 5973565");
+		Label dev3 = new Label(" - Juan Sebastian Almendra  : 322 5973565");
 		dev3.setStyle("-fx-font-size:16px;");
 		devs.getChildren().addAll(devTitle, dev1, dev2, dev3);
 

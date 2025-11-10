@@ -98,7 +98,7 @@ public class FormularioPublicoDenuncia {
         
         // Zona
         Label lblZona = new Label("Zona *");
-        lblZona.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+        lblZona.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0c0c0cff;");
         cbZona = new ComboBox<>();
         cbZona.setEditable(true); // Permite escribir libremente
         cbZona.setPromptText("Seleccione o escriba la zona (ej: San Antonio)");
@@ -110,7 +110,7 @@ public class FormularioPublicoDenuncia {
         
         // Ubicación
         Label lblUbicacion = new Label("Ubicación *");
-        lblUbicacion.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+        lblUbicacion.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #131212ff;");
         cbUbicacion = new ComboBox<>();
         cbUbicacion.setEditable(true); // Permite escribir libremente
         cbUbicacion.setPromptText("Seleccione o escriba la ubicación (ej: Calle 5 #10-20)");
@@ -122,7 +122,7 @@ public class FormularioPublicoDenuncia {
         
         // Punto Cardinal
         Label lblPuntoCardinal = new Label("Punto Cardinal *");
-        lblPuntoCardinal.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+        lblPuntoCardinal.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #020202ff;");
         cbPuntoCardinal = new ComboBox<>();
         cbPuntoCardinal.setEditable(true); // Permite escribir libremente
         cbPuntoCardinal.setPromptText("Seleccione o escriba (Norte, Sur, Este, Oeste)");
@@ -134,7 +134,7 @@ public class FormularioPublicoDenuncia {
         
         // Tipo de Delito
         Label lblTipo = new Label("Tipo de Delito *");
-        lblTipo.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+        lblTipo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #080808ff;");
         cbTipoDelito = new ComboBox<>();
         cbTipoDelito.setEditable(true); // Permite escribir libremente
         cbTipoDelito.setPromptText("Seleccione o escriba (ej: Robo, Hurto, Asalto)");
@@ -146,7 +146,7 @@ public class FormularioPublicoDenuncia {
         
         // Fecha y Hora
         Label lblFechaHora = new Label("Fecha y Hora del Incidente *");
-        lblFechaHora.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+        lblFechaHora.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0c0c0cff;");
         
         HBox fechaHoraBox = new HBox(10);
         dpFecha = new DatePicker();
@@ -161,18 +161,21 @@ public class FormularioPublicoDenuncia {
         spHora.setStyle("-fx-font-size: 15px;");
         
         Label lblDosPuntos = new Label(":");
-        lblDosPuntos.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        lblDosPuntos.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #0c0c0cff;");
         
         spMinuto = new Spinner<>(0, 59, 0);
         spMinuto.setEditable(true);
         spMinuto.setPrefWidth(100);
         spMinuto.setStyle("-fx-font-size: 15px;");
         
-        fechaHoraBox.getChildren().addAll(dpFecha, new Label("Hora:"), spHora, lblDosPuntos, spMinuto);
+        Label lblHora = new Label("Hora:");
+        lblHora.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;");
         
+        fechaHoraBox.getChildren().addAll(dpFecha, lblHora, spHora, lblDosPuntos, spMinuto);
+
         // Descripción
         Label lblDescripcion = new Label("Descripción del Incidente *");
-        lblDescripcion.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+        lblDescripcion.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0c0c0cff;");
         txtDescripcion = new TextArea();
         txtDescripcion.setPromptText("Describa lo sucedido con el mayor detalle posible...");
         txtDescripcion.setPrefRowCount(5);
