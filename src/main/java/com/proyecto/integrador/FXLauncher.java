@@ -617,8 +617,9 @@ public class FXLauncher extends Application {
 				new Alert(Alert.AlertType.WARNING, "Nombre de tabla inválido.", ButtonType.OK).showAndWait();
 				return;
 			}
-			String sql = "SELECT * FROM `" + tabla.replace("`", "") + "`";
-			txtResultadoArea.setText("Ejecutando: " + sql + " ...\n");
+			// Generar SQL con JOINs para mostrar nombres en lugar de IDs
+			String sql = buildEnhancedQuery(tabla);
+			txtResultadoArea.setText("Ejecutando consulta mejorada ...\n");
 			executeQueryAndShowInTable(sql, resultsPane, txtResultadoArea);
 		});
 
@@ -640,11 +641,21 @@ public class FXLauncher extends Application {
 					row.setAlignment(Pos.CENTER_LEFT);
 					Label lbl = new Label(col);
 					lbl.setPrefWidth(150);
-					TextField tf = new TextField();
-					tf.setPrefWidth(220);
-					tf.setPromptText(col);
-					tf.setUserData(col);
-					row.getChildren().addAll(lbl, tf);
+					
+					// Detectar si es FK y crear ComboBox con nombres
+					if (isForeignKeyColumn(col)) {
+						ComboBox<String> cb = createForeignKeyComboBox(col);
+						cb.setPrefWidth(220);
+						cb.setUserData(col);
+						cb.setEditable(true);
+						row.getChildren().addAll(lbl, cb);
+					} else {
+						TextField tf = new TextField();
+						tf.setPrefWidth(220);
+						tf.setPromptText(col);
+						tf.setUserData(col);
+						row.getChildren().addAll(lbl, tf);
+					}
 					formBox.getChildren().add(row);
 				}
 				String pk = getPrimaryKeyColumn(tabla);
@@ -774,7 +785,7 @@ public class FXLauncher extends Application {
 
 		// Helper para crear botones grandes (usa el mismo estilo que antes)
 		java.util.function.Function<String, Button> makeBigBtn = (text) -> {
-			Button b = new Button(text);
+			Button b = new Button(text);	
 			b.setMaxWidth(Double.MAX_VALUE);
 			b.setStyle("-fx-background-color:#4a4e50; -fx-text-fill:white; -fx-background-radius:8; -fx-padding:10 12; -fx-font-size:13px;");
 			b.setTooltip(new Tooltip("Ver " + text));
@@ -1203,15 +1214,32 @@ public class FXLauncher extends Application {
 			if (!(rowNode instanceof HBox)) continue;
 			HBox row = (HBox) rowNode;
 			TextField tf = null;
+			ComboBox<?> cb = null;
 			Label lbl = null;
 			for (javafx.scene.Node n : row.getChildren()) {
 				if (n instanceof Label) lbl = (Label)n;
 				if (n instanceof TextField) tf = (TextField)n;
+				if (n instanceof ComboBox) cb = (ComboBox<?>)n;
 			}
-			if (lbl!=null && tf!=null) {
+			if (lbl!=null) {
 				String col = lbl.getText();
-				String val = tf.getText();
-				map.put(col, val);
+				String val = null;
+				
+				// Si es ComboBox, extraer solo el ID (antes del " - ")
+				if (cb != null && cb.getValue() != null) {
+					String selected = cb.getValue().toString();
+					if (selected.contains(" - ")) {
+						val = selected.substring(0, selected.indexOf(" - ")).trim();
+					} else {
+						val = selected;
+					}
+				} else if (tf != null) {
+					val = tf.getText();
+				}
+				
+				if (val != null) {
+					map.put(col, val);
+				}
 			}
 		}
 		return map;
@@ -1313,6 +1341,146 @@ public class FXLauncher extends Application {
 			ps.setString(1, pkVal);
 			ps.executeUpdate();
 				}
+	}
+
+	// Detecta si una columna es clave foránea (FK)
+	private boolean isForeignKeyColumn(String columnName) {
+		if (columnName == null) return false;
+		String lower = columnName.toLowerCase();
+		// Detectar patrones comunes de FK que apuntan a otras tablas
+		// Incluir: id_zona, id_nivel, id_ubicacion, id_lugar, id_tipo, id_punto, id_delito
+		// Excluir: PKs principales de la tabla actual (id_denuncia en tabla Denuncia)
+		return (lower.contains("id_zona") || 
+				lower.contains("id_nivel") || 
+				lower.contains("id_ubicacion") ||
+				lower.contains("id_lugar") ||
+				lower.contains("id_tipo") ||
+				lower.contains("id_punto") ||
+				lower.contains("id_delito") ||
+				lower.contains("fk_")) &&
+			   !lower.equals("id_denuncia") && // PK de Denuncia
+			   !lower.equals("id_notificacion"); // PK de otras tablas
+	}
+
+	// Crea un ComboBox con los valores de la tabla referenciada
+	private ComboBox<String> createForeignKeyComboBox(String columnName) {
+		ComboBox<String> cb = new ComboBox<>();
+		cb.setPromptText("Seleccione " + columnName);
+		
+		try {
+			// Mapear nombre de columna FK a tabla y columnas display
+			String tableName = null;
+			String idColumn = null;
+			String nameColumn = null;
+			
+			String lower = columnName.toLowerCase();
+			if (lower.contains("zona")) {
+				tableName = "Zona";
+				idColumn = "id_zona";
+				nameColumn = "nombre";
+			} else if (lower.contains("nivel") || lower.contains("riesgo")) {
+				tableName = "NivelRiesgo";
+				idColumn = "id_nivel";
+				nameColumn = "riesgo";
+			} else if (lower.contains("ubicacion")) {
+				tableName = "Ubicacion";
+				idColumn = "id_ubicacion";
+				nameColumn = "direccion";
+			} else if (lower.contains("lugar")) {
+				tableName = "LugarDenuncias";
+				idColumn = "id_lugar";
+				nameColumn = "nombre";
+			} else if (lower.contains("tipo")) {
+				tableName = "Tipo";
+				idColumn = "id_tipo";
+				nameColumn = "tipo_delito";
+			} else if (lower.contains("punto") || lower.contains("cardinal")) {
+				tableName = "PuntoCardinal";
+				idColumn = "id_punto_cardinal";
+				nameColumn = "nombre";
+			} else if (lower.contains("delito")) {
+				tableName = "Delito";
+				idColumn = "id_delito";
+				nameColumn = "tipo_delito";
+			}
+			
+			if (tableName != null && idColumn != null && nameColumn != null) {
+				String sql = "SELECT " + idColumn + ", " + nameColumn + " FROM " + tableName + " ORDER BY " + nameColumn;
+				try (java.sql.Statement stmt = conexion.createStatement();
+					 java.sql.ResultSet rs = stmt.executeQuery(sql)) {
+					
+					ObservableList<String> items = FXCollections.observableArrayList();
+					while (rs.next()) {
+						int id = rs.getInt(idColumn);
+						String name = rs.getString(nameColumn);
+						// Formato: "ID - Nombre" para que el usuario vea el nombre
+						items.add(id + " - " + name);
+					}
+					cb.setItems(items);
+				}
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			cb.setPromptText("Error cargando opciones");
+		}
+		
+		return cb;
+	}
+
+	// Construye consultas SQL con JOINs para mostrar nombres en lugar de IDs
+	private String buildEnhancedQuery(String tableName) {
+		if (tableName == null) return "SELECT * FROM Denuncia";
+		
+		String lower = tableName.toLowerCase();
+		
+		// Consulta mejorada para tabla Ubicacion
+		if (lower.equals("ubicacion")) {
+			return "SELECT u.id_ubicacion, u.direccion AS Direccion, " +
+				   "nr.riesgo AS Nivel_Riesgo, z.nombre AS Zona, " +
+				   "pc.nombre AS Punto_Cardinal " +
+				   "FROM Ubicacion u " +
+				   "LEFT JOIN NivelRiesgo nr ON u.id_nivel = nr.id_nivel " +
+				   "LEFT JOIN Zona z ON u.id_zona = z.id_zona " +
+				   "LEFT JOIN PuntoCardinal pc ON u.id_punto_cardinal = pc.id_punto_cardinal " +
+				   "ORDER BY u.id_ubicacion";
+		}
+		
+		// Consulta mejorada para tabla Denuncia
+		if (lower.equals("denuncia")) {
+			return "SELECT d.id_denuncia, d.fecha, d.hora, d.descripcion, " +
+				   "l.nombre AS Lugar " +
+				   "FROM Denuncia d " +
+				   "LEFT JOIN LugarDenuncias l ON d.id_lugar = l.id_lugar " +
+				   "ORDER BY d.fecha DESC, d.hora DESC";
+		}
+		
+		// Consulta mejorada para tabla Zona
+		if (lower.equals("zona")) {
+			return "SELECT z.id_zona, z.nombre AS Zona, z.comuna_vereda AS Comuna " +
+				   "FROM Zona z " +
+				   "ORDER BY z.nombre";
+		}
+		
+	// Consulta mejorada para tabla LugarDenuncias
+	if (lower.equals("lugardenuncias")) {
+		return "SELECT l.id_lugar, l.nombre AS Nombre, l.direccion AS Direccion, " +
+			   "l.telefono AS Telefono " +
+			   "FROM LugarDenuncias l " +
+			   "ORDER BY l.nombre";
+	}		// Consulta mejorada para tabla Denuncia_Delito (muestra nombres de delito)
+		if (lower.equals("denuncia_delito")) {
+			return "SELECT dd.id_denuncia AS ID_Denuncia, " +
+				   "del.tipo_delito AS Tipo_Delito, " +
+				   "d.fecha AS Fecha_Denuncia " +
+				   "FROM Denuncia_Delito dd " +
+				   "LEFT JOIN Denuncia d ON dd.id_denuncia = d.id_denuncia " +
+				   "LEFT JOIN Delito del ON dd.id_delito = del.id_delito " +
+				   "ORDER BY dd.id_denuncia";
+		}
+		
+		// Para otras tablas que no tienen FKs (Delito, Tipo, PuntoCardinal, NivelRiesgo)
+		// usar consulta simple
+		return "SELECT * FROM `" + tableName.replace("`", "") + "`";
 	}
 
 	// Nuevo helper que devuelve el nombre real de la tabla (implementado)
