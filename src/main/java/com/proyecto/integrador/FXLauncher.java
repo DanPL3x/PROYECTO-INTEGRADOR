@@ -790,10 +790,9 @@ public class FXLauncher extends Application {
 		Button bLugaresMas = makeBigBtn.apply("Lugares con más Denuncias");
 		Button bDenunciasPorBarrio = makeBigBtn.apply("Denuncias por Barrio");
 		Button bDenunciasPorDelito = makeBigBtn.apply("Denuncias por Delito");
-		Button bPuntosCard = makeBigBtn.apply("Puntos Cardinales");
 		Button bUbicaciones = makeBigBtn.apply("Listar Ubicaciones (completo)");
 
-		left.getChildren().addAll(leftTitle, bBarrios, bCAIs, bRecientes, bZonasSeguras, bDelitos, bHorarios, bLugaresMas, bDenunciasPorBarrio, bDenunciasPorDelito, bPuntosCard, bUbicaciones);
+		left.getChildren().addAll(leftTitle, bBarrios, bCAIs, bRecientes, bZonasSeguras, bDelitos, bHorarios, bLugaresMas, bDenunciasPorBarrio, bDenunciasPorDelito, bUbicaciones);
 
 		// CENTER: results container (muestra TableView para SELECT o TextArea para fallback)
 		BorderPane resultsPane = new BorderPane();
@@ -898,13 +897,16 @@ public class FXLauncher extends Application {
 			resultArea.setText("Ejecutando: Denuncias por Delito ...");
 			executeQueryAndShowInTable(sql, resultsPane, resultArea);
 		});
-		bPuntosCard.setOnAction(e -> {
-			String sql = "SELECT id_punto_cardinal, nombre FROM PuntoCardinal";
-			resultArea.setText("Ejecutando: Puntos Cardinales ...");
-			executeQueryAndShowInTable(sql, resultsPane, resultArea);
-		});
+
 		bUbicaciones.setOnAction(e -> {
-			String sql = "SELECT id_ubicacion, direccion, id_nivel, id_zona, id_punto_cardinal FROM Ubicacion LIMIT 200";
+			String sql = "SELECT u.direccion AS Direccion, " +
+					"nr.riesgo AS Nivel_Riesgo, z.nombre AS Zona, " +
+					"pc.nombre AS Punto_Cardinal " +
+					"FROM Ubicacion u " +
+					"LEFT JOIN NivelRiesgo nr ON u.id_nivel = nr.id_nivel " +
+					"LEFT JOIN Zona z ON u.id_zona = z.id_zona " +
+					"LEFT JOIN PuntoCardinal pc ON u.id_punto_cardinal = pc.id_punto_cardinal " +
+					"LIMIT 200";
 			resultArea.setText("Ejecutando: Ubicaciones (completo) ...");
 			executeQueryAndShowInTable(sql, resultsPane, resultArea);
 		});
