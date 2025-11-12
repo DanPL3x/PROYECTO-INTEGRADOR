@@ -532,6 +532,45 @@ public class FXLauncher extends Application {
 		btnEjecutar.setStyle("-fx-background-color:#2b7cff; -fx-text-fill:white; -fx-font-size:16px; -fx-pref-height:40;");
 		left.getChildren().addAll(new Separator(), btnEjecutar);
 
+		// NUEVO: Sección de Reportes y Consultas Avanzadas con Stored Procedures
+		left.getChildren().add(new Separator());
+		Label lblReportes = new Label("📊 REPORTES AVANZADOS");
+		lblReportes.setStyle("-fx-font-weight:bold; -fx-font-size:14px; -fx-text-fill:#2b7cff;");
+		left.getChildren().add(lblReportes);
+
+		Button btnDelitosFrecuentes = new Button("Delitos Más Frecuentes");
+		btnDelitosFrecuentes.setMaxWidth(Double.MAX_VALUE);
+		btnDelitosFrecuentes.setStyle("-fx-font-size:13px; -fx-pref-height:35;");
+		btnDelitosFrecuentes.setOnAction(e -> mostrarReporteDelitosFrecuentes());
+
+		Button btnDenunciasDetalladas = new Button("Denuncias Detalladas");
+		btnDenunciasDetalladas.setMaxWidth(Double.MAX_VALUE);
+		btnDenunciasDetalladas.setStyle("-fx-font-size:13px; -fx-pref-height:35;");
+		btnDenunciasDetalladas.setOnAction(e -> mostrarDenunciasDetalladas());
+
+		Button btnZonasDetalladas = new Button("Zonas Detalladas");
+		btnZonasDetalladas.setMaxWidth(Double.MAX_VALUE);
+		btnZonasDetalladas.setStyle("-fx-font-size:13px; -fx-pref-height:35;");
+		btnZonasDetalladas.setOnAction(e -> mostrarZonasDetalladas());
+
+		Button btnZonasPorRiesgo = new Button("Zonas por Riesgo");
+		btnZonasPorRiesgo.setMaxWidth(Double.MAX_VALUE);
+		btnZonasPorRiesgo.setStyle("-fx-font-size:13px; -fx-pref-height:35;");
+		btnZonasPorRiesgo.setOnAction(e -> consultarZonasPorRiesgo());
+
+		Button btnBarriosPorRiesgo = new Button("Barrios por Riesgo");
+		btnBarriosPorRiesgo.setMaxWidth(Double.MAX_VALUE);
+		btnBarriosPorRiesgo.setStyle("-fx-font-size:13px; -fx-pref-height:35;");
+		btnBarriosPorRiesgo.setOnAction(e -> consultarBarriosPorRiesgo());
+
+		left.getChildren().addAll(
+			btnDelitosFrecuentes, 
+			btnDenunciasDetalladas, 
+			btnZonasDetalladas,
+			btnZonasPorRiesgo,
+			btnBarriosPorRiesgo
+		);
+
 		// Center: resultados ahora con container para TableView o TextArea
 		BorderPane resultsPane = new BorderPane();
 		TextArea txtResultadoArea = new TextArea();
@@ -608,13 +647,17 @@ public class FXLauncher extends Application {
 		btnEjecutar.setOnAction(ev -> {
 			Toggle selected = tg.getSelectedToggle();
 			if (selected == null) {
-				new Alert(Alert.AlertType.WARNING, "Seleccione una tabla antes de ejecutar.", ButtonType.OK).showAndWait();
+				Alert alert = new Alert(Alert.AlertType.WARNING, "Seleccione una tabla antes de ejecutar.", ButtonType.OK);
+				configureAlertToFront(alert);
+				alert.showAndWait();
 				return;
 			}
 			String display = (String) selected.getUserData();
 			String tabla = resolveTableName(display);
 			if (tabla == null || tabla.trim().isEmpty()) {
-				new Alert(Alert.AlertType.WARNING, "Nombre de tabla inválido.", ButtonType.OK).showAndWait();
+				Alert alert = new Alert(Alert.AlertType.WARNING, "Nombre de tabla inválido.", ButtonType.OK);
+				configureAlertToFront(alert);
+				alert.showAndWait();
 				return;
 			}
 			// Generar SQL con JOINs para mostrar nombres en lugar de IDs
@@ -802,8 +845,11 @@ public class FXLauncher extends Application {
 		Button bDenunciasPorBarrio = makeBigBtn.apply("Denuncias por Barrio");
 		Button bDenunciasPorDelito = makeBigBtn.apply("Denuncias por Delito");
 		Button bUbicaciones = makeBigBtn.apply("Listar Ubicaciones (completo)");
+		// NUEVO: Botón con Stored Procedure
+		Button bZonasPorRiesgoSP = makeBigBtn.apply("🔍 Zonas por Riesgo (SP)");
+		bZonasPorRiesgoSP.setStyle("-fx-background-color:#e74c3c; -fx-text-fill:white; -fx-background-radius:8; -fx-padding:10 12; -fx-font-size:13px; -fx-font-weight:bold;");
 
-		left.getChildren().addAll(leftTitle, bBarrios, bCAIs, bRecientes, bZonasSeguras, bDelitos, bHorarios, bLugaresMas, bDenunciasPorBarrio, bDenunciasPorDelito, bUbicaciones);
+		left.getChildren().addAll(leftTitle, bBarrios, bCAIs, bRecientes, bZonasSeguras, bDelitos, bHorarios, bLugaresMas, bDenunciasPorBarrio, bDenunciasPorDelito, bUbicaciones, new Separator(), bZonasPorRiesgoSP);
 
 		// CENTER: results container (muestra TableView para SELECT o TextArea para fallback)
 		BorderPane resultsPane = new BorderPane();
@@ -922,12 +968,120 @@ public class FXLauncher extends Application {
 			executeQueryAndShowInTable(sql, resultsPane, resultArea);
 		});
 
+		// NUEVO: Handler para Stored Procedure - Zonas por Riesgo
+		bZonasPorRiesgoSP.setOnAction(e -> {
+			// Mostrar diálogo para seleccionar nivel de riesgo
+			Dialog<Integer> dialog = new Dialog<>();
+			dialog.initOwner(primaryStage); // Asociar con ventana principal
+			dialog.initModality(Modality.APPLICATION_MODAL); // Hacer modal
+			dialog.setTitle("Consulta con Stored Procedure");
+			dialog.setHeaderText("Seleccione el nivel de riesgo para consultar zonas\n(Esta consulta usa el procedimiento almacenado ConsultarZonasPorRiesgo)");
+			
+			ButtonType consultarButtonType = new ButtonType("Consultar", ButtonBar.ButtonData.OK_DONE);
+			dialog.getDialogPane().getButtonTypes().addAll(consultarButtonType, ButtonType.CANCEL);
+			
+			// IMPORTANTE: Forzar que el diálogo aparezca al frente
+			Platform.runLater(() -> {
+				dialog.getDialogPane().getScene().getWindow().setX(primaryStage.getX() + 
+					(primaryStage.getWidth() - dialog.getDialogPane().getWidth()) / 2);
+				dialog.getDialogPane().getScene().getWindow().setY(primaryStage.getY() + 
+					(primaryStage.getHeight() - dialog.getDialogPane().getHeight()) / 2);
+				((Stage) dialog.getDialogPane().getScene().getWindow()).setAlwaysOnTop(true);
+				((Stage) dialog.getDialogPane().getScene().getWindow()).toFront();
+			});
+			
+			VBox dialogContent = new VBox(10);
+			dialogContent.setPadding(new Insets(10));
+			
+			Label lblInfo = new Label("Nivel de Riesgo:");
+			lblInfo.setStyle("-fx-font-weight:bold;");
+			
+			ComboBox<String> comboRiesgo = new ComboBox<>();
+			comboRiesgo.getItems().addAll("1 - Bajo", "2 - Medio", "3 - Alto");
+			comboRiesgo.setValue("1 - Bajo");
+			comboRiesgo.setPrefWidth(200);
+			
+			Label lblDesc = new Label("Este procedimiento almacenado filtra las zonas\nsegún su nivel de riesgo configurado en la base de datos.");
+			lblDesc.setStyle("-fx-font-size:11px; -fx-text-fill:#666;");
+			
+			dialogContent.getChildren().addAll(lblInfo, comboRiesgo, lblDesc);
+			dialog.getDialogPane().setContent(dialogContent);
+			
+			dialog.setResultConverter(dialogButton -> {
+				if (dialogButton == consultarButtonType) {
+					String selected = comboRiesgo.getValue();
+					return Integer.parseInt(selected.substring(0, 1));
+				}
+				return null;
+			});
+			
+			dialog.showAndWait().ifPresent(nivel -> {
+				resultArea.setText("⏳ Ejecutando Stored Procedure: ConsultarZonasPorRiesgo(" + nivel + ")...\n");
+				Task<Void> task = new Task<>() {
+					@Override
+					protected Void call() throws Exception {
+						try {
+							java.sql.ResultSet rs = consultasDB.consultarZonasPorNivelRiesgo(nivel);
+							Platform.runLater(() -> {
+								try {
+									// Crear TableView desde ResultSet
+									TableView<ObservableList<String>> table = new TableView<>();
+									java.sql.ResultSetMetaData metaData = rs.getMetaData();
+									int columnCount = metaData.getColumnCount();
+									
+									// Crear columnas
+									for (int i = 1; i <= columnCount; i++) {
+										final int colIndex = i - 1;
+										TableColumn<ObservableList<String>, String> column = 
+											new TableColumn<>(metaData.getColumnLabel(i));
+										column.setCellValueFactory(param -> 
+											new ReadOnlyStringWrapper(param.getValue().get(colIndex)));
+										column.setPrefWidth(150);
+										table.getColumns().add(column);
+									}
+									
+									// Poblar datos
+									ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
+									while (rs.next()) {
+										ObservableList<String> row = FXCollections.observableArrayList();
+										for (int i = 1; i <= columnCount; i++) {
+											row.add(rs.getString(i));
+										}
+										data.add(row);
+									}
+									table.setItems(data);
+									
+									// Mostrar tabla
+									resultsPane.setCenter(table);
+									resultArea.setText("✅ Stored Procedure ejecutado exitosamente.\n" +
+										"Resultados: " + data.size() + " zonas con nivel de riesgo " + nivel);
+									
+								} catch (Exception ex) {
+									resultArea.setText("❌ Error procesando resultados: " + ex.getMessage());
+									ex.printStackTrace();
+								}
+							});
+						} catch (Exception ex) {
+							Platform.runLater(() -> {
+								resultArea.setText("❌ Error ejecutando SP: " + ex.getMessage());
+								ex.printStackTrace();
+							});
+						}
+						return null;
+					}
+				};
+				new Thread(task).start();
+			});
+		});
+
 		// Limpiar y enviar mantienen su comportamiento
 		btnClear.setOnAction(e -> txtAsk.clear());
 		btnSend.setOnAction(ev -> {
 			String text = txtAsk.getText();
 			if (text == null || text.trim().isEmpty()) {
-				new Alert(Alert.AlertType.WARNING, "Ingrese un texto antes de enviar.", ButtonType.OK).showAndWait();
+				Alert alert = new Alert(Alert.AlertType.WARNING, "Ingrese un texto antes de enviar.", ButtonType.OK);
+				configureAlertToFront(alert);
+				alert.showAndWait();
 				return;
 			}
 			String sender = (tfName.getText() != null && !tfName.getText().trim().isEmpty()) ? tfName.getText().trim() : "Usuario";
@@ -937,10 +1091,14 @@ public class FXLauncher extends Application {
 					notifications.add(0, created);
 				}
 				txtAsk.clear();
-				new Alert(Alert.AlertType.INFORMATION, "Su mensaje fue enviado al administrador.", ButtonType.OK).showAndWait();
+				Alert alert = new Alert(Alert.AlertType.INFORMATION, "Su mensaje fue enviado al administrador.", ButtonType.OK);
+				configureAlertToFront(alert);
+				alert.showAndWait();
 			} catch (Exception ex) {
 				ex.printStackTrace();
-				new Alert(Alert.AlertType.ERROR, "Error enviando mensaje: " + ex.getMessage(), ButtonType.OK).showAndWait();
+				Alert alert = new Alert(Alert.AlertType.ERROR, "Error enviando mensaje: " + ex.getMessage(), ButtonType.OK);
+				configureAlertToFront(alert);
+				alert.showAndWait();
 			}
 		});
 
@@ -1453,8 +1611,7 @@ public class FXLauncher extends Application {
 				   "LEFT JOIN LugarDenuncias l ON d.id_lugar = l.id_lugar " +
 				   "ORDER BY d.fecha DESC, d.hora DESC";
 		}
-		
-		// Consulta mejorada para tabla Zona
+		 
 		if (lower.equals("zona")) {
 			return "SELECT z.id_zona, z.nombre AS Zona, z.comuna_vereda AS Comuna " +
 				   "FROM Zona z " +
@@ -1558,6 +1715,224 @@ public class FXLauncher extends Application {
 		
 		primaryStage.setScene(dashboardScene);
 		primaryStage.setFullScreen(true);
+	}
+
+	// ========== MÉTODOS PARA STORED PROCEDURES ==========
+
+	/**
+	 * Configura un diálogo/alerta para que siempre aparezca encima de la ventana principal
+	 */
+	private void configureDialogToFront(Dialog<?> dialog) {
+		dialog.initOwner(primaryStage);
+		dialog.initModality(Modality.APPLICATION_MODAL);
+		Platform.runLater(() -> {
+			Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
+			stage.setAlwaysOnTop(true);
+			stage.toFront();
+		});
+	}
+
+	/**
+	 * Configura una alerta para que siempre aparezca encima de la ventana principal
+	 */
+	private void configureAlertToFront(Alert alert) {
+		alert.initOwner(primaryStage);
+		Platform.runLater(() -> {
+			Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+			stage.setAlwaysOnTop(true);
+			stage.toFront();
+		});
+	}
+
+	/**
+	 * Muestra un reporte de delitos más frecuentes usando el SP
+	 */
+	private void mostrarReporteDelitosFrecuentes() {
+		String reporte = consultasDB.reporteDelitosMasFrecuentes();
+		
+		Alert alert = new Alert(Alert.AlertType.INFORMATION);
+		alert.setTitle("Reporte de Delitos");
+		alert.setHeaderText("Delitos Más Frecuentes");
+		
+		TextArea textArea = new TextArea(reporte);
+		textArea.setEditable(false);
+		textArea.setWrapText(true);
+		textArea.setFont(Font.font("Consolas", 12));
+		textArea.setPrefWidth(600);
+		textArea.setPrefHeight(400);
+		
+		alert.getDialogPane().setContent(textArea);
+		configureAlertToFront(alert); // Configurar para aparecer al frente
+		alert.showAndWait();
+	}
+
+	/**
+	 * Muestra un diálogo para consultar zonas por nivel de riesgo
+	 */
+	private void consultarZonasPorRiesgo() {
+		Dialog<Integer> dialog = new Dialog<>();
+		dialog.setTitle("Consultar Zonas por Riesgo");
+		dialog.setHeaderText("Seleccione el nivel de riesgo a consultar");
+		
+		ButtonType consultarButtonType = new ButtonType("Consultar", ButtonBar.ButtonData.OK_DONE);
+		dialog.getDialogPane().getButtonTypes().addAll(consultarButtonType, ButtonType.CANCEL);
+		
+		ComboBox<String> comboRiesgo = new ComboBox<>();
+		comboRiesgo.getItems().addAll("1 - Bajo", "2 - Medio", "3 - Alto");
+		comboRiesgo.setValue("1 - Bajo");
+		
+		VBox content = new VBox(10);
+		content.getChildren().addAll(new Label("Nivel de Riesgo:"), comboRiesgo);
+		dialog.getDialogPane().setContent(content);
+		
+		configureDialogToFront(dialog); // Configurar para aparecer al frente
+		
+		dialog.setResultConverter(dialogButton -> {
+			if (dialogButton == consultarButtonType) {
+				String selected = comboRiesgo.getValue();
+				return Integer.parseInt(selected.substring(0, 1));
+			}
+			return null;
+		});
+		
+		dialog.showAndWait().ifPresent(nivel -> {
+			try {
+				java.sql.ResultSet rs = consultasDB.consultarZonasPorNivelRiesgo(nivel);
+				mostrarResultSetEnTabla(rs, "Zonas con Nivel de Riesgo " + nivel);
+			} catch (Exception e) {
+				mostrarError("Error al consultar zonas", e.getMessage());
+			}
+		});
+	}
+
+	/**
+	 * Muestra un diálogo para consultar barrios por nivel de riesgo
+	 */
+	private void consultarBarriosPorRiesgo() {
+		Dialog<Integer> dialog = new Dialog<>();
+		dialog.setTitle("Consultar Barrios por Riesgo");
+		dialog.setHeaderText("Seleccione el nivel de riesgo a consultar");
+		
+		ButtonType consultarButtonType = new ButtonType("Consultar", ButtonBar.ButtonData.OK_DONE);
+		dialog.getDialogPane().getButtonTypes().addAll(consultarButtonType, ButtonType.CANCEL);
+		
+		ComboBox<String> comboRiesgo = new ComboBox<>();
+		comboRiesgo.getItems().addAll("1 - Bajo", "2 - Medio", "3 - Alto");
+		comboRiesgo.setValue("1 - Bajo");
+		
+		VBox content = new VBox(10);
+		content.getChildren().addAll(new Label("Nivel de Riesgo:"), comboRiesgo);
+		dialog.getDialogPane().setContent(content);
+		
+		configureDialogToFront(dialog); // Configurar para aparecer al frente
+		
+		dialog.setResultConverter(dialogButton -> {
+			if (dialogButton == consultarButtonType) {
+				String selected = comboRiesgo.getValue();
+				return Integer.parseInt(selected.substring(0, 1));
+			}
+			return null;
+		});
+		
+		dialog.showAndWait().ifPresent(nivel -> {
+			try {
+				java.sql.ResultSet rs = consultasDB.consultarBarriosPorRiesgo(nivel);
+				mostrarResultSetEnTabla(rs, "Barrios con Nivel de Riesgo " + nivel);
+			} catch (Exception e) {
+				mostrarError("Error al consultar barrios", e.getMessage());
+			}
+		});
+	}
+
+	/**
+	 * Muestra denuncias detalladas usando el SP ConsultarDenuncias
+	 */
+	private void mostrarDenunciasDetalladas() {
+		try {
+			java.sql.ResultSet rs = consultasDB.consultarDenunciasDetalladas();
+			mostrarResultSetEnTabla(rs, "Denuncias Detalladas");
+		} catch (Exception e) {
+			mostrarError("Error al consultar denuncias", e.getMessage());
+		}
+	}
+
+	/**
+	 * Muestra zonas detalladas usando el SP ConsultarZonas
+	 */
+	private void mostrarZonasDetalladas() {
+		try {
+			java.sql.ResultSet rs = consultasDB.consultarZonasDetalladas();
+			mostrarResultSetEnTabla(rs, "Zonas Detalladas");
+		} catch (Exception e) {
+			mostrarError("Error al consultar zonas", e.getMessage());
+		}
+	}
+
+	/**
+	 * Método auxiliar para mostrar un ResultSet en una tabla JavaFX
+	 */
+	private void mostrarResultSetEnTabla(java.sql.ResultSet rs, String titulo) {
+		try {
+			Stage stage = new Stage();
+			stage.setTitle(titulo);
+			stage.initOwner(primaryStage); // Asociar con ventana principal
+			stage.initModality(Modality.APPLICATION_MODAL);
+			stage.setAlwaysOnTop(true); // Siempre al frente
+			
+			TableView<ObservableList<String>> tableView = new TableView<>();
+			
+			// Crear columnas desde ResultSetMetaData
+			java.sql.ResultSetMetaData metaData = rs.getMetaData();
+			int columnCount = metaData.getColumnCount();
+			
+			for (int i = 1; i <= columnCount; i++) {
+				final int colIndex = i - 1;
+				TableColumn<ObservableList<String>, String> column = 
+					new TableColumn<>(metaData.getColumnLabel(i));
+				column.setCellValueFactory(param -> 
+					new ReadOnlyStringWrapper(param.getValue().get(colIndex)));
+				column.setPrefWidth(150);
+				tableView.getColumns().add(column);
+			}
+			
+			// Poblar datos
+			ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
+			while (rs.next()) {
+				ObservableList<String> row = FXCollections.observableArrayList();
+				for (int i = 1; i <= columnCount; i++) {
+					row.add(rs.getString(i));
+				}
+				data.add(row);
+			}
+			tableView.setItems(data);
+			
+			VBox vbox = new VBox(10, tableView);
+			vbox.setPadding(new Insets(15));
+			
+			Button btnCerrar = new Button("Cerrar");
+			btnCerrar.setOnAction(e -> stage.close());
+			vbox.getChildren().add(btnCerrar);
+			
+			Scene scene = new Scene(vbox, 900, 600);
+			stage.setScene(scene);
+			stage.show();
+			stage.toFront(); // Forzar que aparezca al frente
+			
+		} catch (Exception e) {
+			mostrarError("Error al mostrar tabla", e.getMessage());
+		}
+	}
+
+	/**
+	 * Método auxiliar para mostrar mensajes de error
+	 */
+	private void mostrarError(String titulo, String mensaje) {
+		Alert alert = new Alert(Alert.AlertType.ERROR);
+		alert.setTitle(titulo);
+		alert.setHeaderText(null);
+		alert.setContentText(mensaje);
+		configureAlertToFront(alert); // Configurar para aparecer al frente
+		alert.showAndWait();
 	}
 
 } // fin de clase FXLauncher

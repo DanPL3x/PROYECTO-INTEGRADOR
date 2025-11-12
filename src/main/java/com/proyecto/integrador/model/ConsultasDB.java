@@ -176,4 +176,190 @@ public class ConsultasDB {
         
         return result.toString();
     }
+
+    // ========== STORED PROCEDURES ==========
+
+    /**
+     * Inserta una denuncia y la asocia con un delito usando el SP InsertarDenuncia
+     * @param fecha Fecha de la denuncia
+     * @param hora Hora de la denuncia
+     * @param descripcion Descripción del incidente
+     * @param idLugar ID del lugar donde ocurrió
+     * @param idDelito ID del tipo de delito
+     * @return ID de la denuncia insertada, o -1 si hay error
+     */
+    public int insertarDenunciaConDelito(Date fecha, Time hora, String descripcion, int idLugar, int idDelito) {
+        String sql = "{CALL InsertarDenuncia(?, ?, ?, ?, ?)}";
+        
+        try (CallableStatement stmt = conexion.prepareCall(sql)) {
+            stmt.setDate(1, fecha);
+            stmt.setTime(2, hora);
+            stmt.setString(3, descripcion);
+            stmt.setInt(4, idLugar);
+            stmt.setInt(5, idDelito);
+            
+            stmt.execute();
+            
+            // Obtener el ID generado
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+            
+            // Si no se puede obtener con getGeneratedKeys, usar LAST_INSERT_ID()
+            try (Statement st = conexion.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT LAST_INSERT_ID()")) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error en insertarDenunciaConDelito: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return -1;
+    }
+
+    /**
+     * Consulta denuncias con información detallada usando el SP ConsultarDenuncias
+     * @return ResultSet con las denuncias (debe cerrarse después de usar)
+     */
+    public ResultSet consultarDenunciasDetalladas() throws SQLException {
+        String sql = "{CALL ConsultarDenuncias()}";
+        CallableStatement stmt = conexion.prepareCall(sql);
+        return stmt.executeQuery();
+    }
+
+    /**
+     * Actualiza los datos de una denuncia existente usando el SP ActualizarDenuncia
+     * @param idDenuncia ID de la denuncia a actualizar
+     * @param fecha Nueva fecha
+     * @param hora Nueva hora
+     * @param descripcion Nueva descripción
+     * @param idLugar Nuevo ID de lugar
+     * @return true si se actualizó correctamente
+     */
+    public boolean actualizarDenuncia(int idDenuncia, Date fecha, Time hora, String descripcion, int idLugar) {
+        String sql = "{CALL ActualizarDenuncia(?, ?, ?, ?, ?)}";
+        
+        try (CallableStatement stmt = conexion.prepareCall(sql)) {
+            stmt.setInt(1, idDenuncia);
+            stmt.setDate(2, fecha);
+            stmt.setTime(3, hora);
+            stmt.setString(4, descripcion);
+            stmt.setInt(5, idLugar);
+            
+            stmt.executeUpdate();
+            return true;
+            
+        } catch (SQLException e) {
+            System.err.println("Error en actualizarDenuncia: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Consulta zonas con información completa usando el SP ConsultarZonas
+     * @return ResultSet con las zonas (debe cerrarse después de usar)
+     */
+    public ResultSet consultarZonasDetalladas() throws SQLException {
+        String sql = "{CALL ConsultarZonas()}";
+        CallableStatement stmt = conexion.prepareCall(sql);
+        return stmt.executeQuery();
+    }
+
+    /**
+     * Consulta zonas filtradas por nivel de riesgo usando el SP ConsultarZonasPorRiesgo
+     * @param idNivel ID del nivel de riesgo (1-3)
+     * @return ResultSet con las zonas (debe cerrarse después de usar)
+     */
+    public ResultSet consultarZonasPorNivelRiesgo(int idNivel) throws SQLException {
+        String sql = "{CALL ConsultarZonasPorRiesgo(?)}";
+        CallableStatement stmt = conexion.prepareCall(sql);
+        stmt.setInt(1, idNivel);
+        return stmt.executeQuery();
+    }
+
+    /**
+     * Registra una denuncia con validación del lugar usando el SP RegistrarDenunciaSegura
+     * @param fecha Fecha de la denuncia
+     * @param hora Hora de la denuncia
+     * @param descripcion Descripción del incidente
+     * @param idLugar ID del lugar donde ocurrió
+     * @return Mensaje de resultado (éxito o error)
+     */
+    public String registrarDenunciaSegura(Date fecha, Time hora, String descripcion, int idLugar) {
+        String sql = "{CALL RegistrarDenunciaSegura(?, ?, ?, ?)}";
+        
+        try (CallableStatement stmt = conexion.prepareCall(sql)) {
+            stmt.setDate(1, fecha);
+            stmt.setTime(2, hora);
+            stmt.setString(3, descripcion);
+            stmt.setInt(4, idLugar);
+            
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("mensaje");
+            }
+            
+        } catch (SQLException e) {
+            return "⚠️ Error: " + e.getMessage();
+        }
+        
+        return "⚠️ Error desconocido al registrar denuncia";
+    }
+
+    /**
+     * Obtiene estadísticas de delitos más frecuentes usando el SP DelitosMasFrecuentes
+     * @return ResultSet con delitos y frecuencias (debe cerrarse después de usar)
+     */
+    public ResultSet obtenerDelitosMasFrecuentes() throws SQLException {
+        String sql = "{CALL DelitosMasFrecuentes()}";
+        CallableStatement stmt = conexion.prepareCall(sql);
+        return stmt.executeQuery();
+    }
+
+    /**
+     * Consulta barrios filtrados por nivel de riesgo usando el SP ConsultarBarriosPorRiesgo
+     * @param nivelRiesgo Nivel de riesgo (1-3)
+     * @return ResultSet con los barrios (debe cerrarse después de usar)
+     */
+    public ResultSet consultarBarriosPorRiesgo(int nivelRiesgo) throws SQLException {
+        String sql = "{CALL ConsultarBarriosPorRiesgo(?)}";
+        CallableStatement stmt = conexion.prepareCall(sql);
+        stmt.setInt(1, nivelRiesgo);
+        return stmt.executeQuery();
+    }
+
+    /**
+     * Versión formateada para consola de DelitosMasFrecuentes
+     * @return String con el reporte formateado
+     */
+    public String reporteDelitosMasFrecuentes() {
+        StringBuilder resultado = new StringBuilder();
+        resultado.append("\n═══════════════════════════════════════════════════\n");
+        resultado.append("       DELITOS MÁS FRECUENTES - REPORTE\n");
+        resultado.append("═══════════════════════════════════════════════════\n\n");
+        
+        try (ResultSet rs = obtenerDelitosMasFrecuentes()) {
+            resultado.append(String.format("%-40s %-15s\n", "TIPO DE DELITO", "FRECUENCIA"));
+            resultado.append("-".repeat(55)).append("\n");
+            
+            while (rs.next()) {
+                String delito = rs.getString("delito");
+                int frecuencia = rs.getInt("frecuencia");
+                resultado.append(String.format("%-40s %-15d\n", delito, frecuencia));
+            }
+            
+        } catch (SQLException e) {
+            return "⚠️ Error al generar reporte: " + e.getMessage();
+        }
+        
+        resultado.append("\n═══════════════════════════════════════════════════\n");
+        return resultado.toString();
+    }
 }
